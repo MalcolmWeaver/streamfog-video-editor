@@ -1,75 +1,60 @@
 'use client';
-import React, { useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 
-/**
- * Props for the VideoPreviewPlayer component.
- */
 interface VideoPreviewPlayerProps {
-    videoSrc: string | null;
-    videoRef: React.RefObject<HTMLVideoElement|null>;
-    canvasRef: React.RefObject<HTMLCanvasElement|null>;
-    onVideoMetadataLoaded?: (videoElement: HTMLVideoElement) => void;
+  videoSrc: string | null;
+  videoRef: React.RefObject<HTMLVideoElement>;
+  canvasRef: React.RefObject<HTMLCanvasElement>; // Still use this ref
+  onVideoMetadataLoaded: (videoElement: HTMLVideoElement) => void;
 }
 
-/**
- * A component to display the video player and an overlay canvas for AR rendering.
- *
- * @param {VideoPreviewPlayerProps} props
- */
-const VideoPreviewPlayer = ({ videoSrc, videoRef, canvasRef, onVideoMetadataLoaded }: VideoPreviewPlayerProps) => {
+const VideoPreviewPlayer: React.FC<VideoPreviewPlayerProps> = ({
+  videoSrc,
+  videoRef,
+  canvasRef, // Keep this prop
+  onVideoMetadataLoaded,
+}) => {
+  // No changes needed here, as long as the parent re-mounts this component
+  // or its key changes when the videoSrc changes, which should provide a new canvas.
 
-  // Effect to handle video loading and metadata events
   useEffect(() => {
-    if(videoRef == null || videoSrc == null || canvasRef == null){
-        console.log("SOMETHING WENT WRONG WITH PAGE SETUP");
-        return;
-    }
-    const videoElement = videoRef.current;
-    if (videoElement && videoSrc) {
-      // Set the video source. The browser will handle loading it.
-      videoElement.src = videoSrc;
-      // Note: We don't call videoElement.load() here. React updating the src prop
-      // on the video element is often enough, and handleLoadedMetadata below ensures dimensions.
+    if (videoRef.current && videoSrc) {
+      videoRef.current.src = videoSrc;
+      videoRef.current.load(); // Load the new video
 
-      // Callback to execute once video metadata (like dimensions, duration) is loaded
       const handleLoadedMetadata = () => {
-        if (onVideoMetadataLoaded) {
-          onVideoMetadataLoaded(videoElement); // Pass the video element to the parent
-        }
-        // Ensure canvas dimensions match video dimensions for correct rendering
-        if (canvasRef.current) {
-          canvasRef.current.width = videoElement.videoWidth;
-          canvasRef.current.height = videoElement.videoHeight;
-        }
+        onVideoMetadataLoaded(videoRef.current!);
       };
 
-      videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+      videoRef.current.addEventListener('loadedmetadata', handleLoadedMetadata);
 
       return () => {
-        videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        videoRef.current?.removeEventListener('loadedmetadata', handleLoadedMetadata);
       };
     }
-  }, [videoSrc, onVideoMetadataLoaded, videoRef, canvasRef]); // Dependencies for the effect
+  }, [videoSrc, onVideoMetadataLoaded, videoRef]);
 
   return (
-    // Main container for the preview section
-      <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
-        {/* Video Player element */}
-        <video
-          ref={videoRef} // Assign ref passed from parent
-          controls // Display native video controls (play, pause, seek)
-          className="absolute top-0 left-0 w-full h-full object-contain" // Fill container, maintain aspect ratio
-        >
-          Your browser does not support the video tag.
-        </video>
-        {/* Canvas Overlay for AR rendering.
-            Positioned directly over the video.
-            pointer-events-none ensures clicks "fall through" to the video controls below. */}
-        <canvas
-          ref={canvasRef} // Assign ref passed from parent
-          className="absolute top-0 left-0 w-full h-full pointer-events-none"
-        ></canvas>
-      </div>
+    <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+      <video
+        ref={videoRef}
+        className="absolute inset-0 w-full h-full object-contain"
+        muted // Mute for automatic playback and to avoid audio feedback loops with Camera Kit
+        loop // Loop for continuous AR effect
+        playsInline // Crucial for mobile devices
+        key={videoSrc || 'default-video'} // <--- Important: Add a key to force re-mount if videoSrc changes
+      ></video>
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+        key={videoSrc ? `canvas-${videoSrc}` : 'canvas-empty'} // <--- Important: Add a key to force re-mount
+      ></canvas>
+      {!videoSrc && (
+        <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-lg">
+          No video loaded.
+        </div>
+      )}
+    </div>
   );
 };
 
