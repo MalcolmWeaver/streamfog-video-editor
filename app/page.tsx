@@ -76,6 +76,28 @@ const App = () => {
   }, []);
 
   /**
+   * Callback to update an existing filter in the list.
+   * @param {AppliedFilter} updatedFilter - The updated filter data.
+   */
+  const handleUpdateFilter = React.useCallback((updatedFilter: AppliedFilter) => {
+    setAppliedFilters((prevFilters) =>
+      prevFilters.map((filter) =>
+        filter.id === updatedFilter.id ? updatedFilter : filter
+      )
+    );
+    // ⭐ Future: Trigger Snap Camera Kit to re-evaluate active lenses
+  }, []);
+
+  /**
+   * Callback to delete an existing filter from the list.
+   * @param {string} id - The ID of the filter to delete.
+   */
+  const handleDeleteFilter = React.useCallback((id: string) => {
+    setAppliedFilters((prevFilters) => prevFilters.filter((filter) => filter.id !== id));
+    // ⭐ Future: Trigger Snap Camera Kit to re-evaluate active lenses
+  }, []);
+
+  /**
    * Toggles video play/pause state.
    */
   const handlePlayPause = React.useCallback(() => {
@@ -174,6 +196,8 @@ const App = () => {
               isPlaying={isPlaying}
               onPlayPause={handlePlayPause}
               onAddNewFilter={handleAddNewFilter}
+              onUpdateFilter={handleUpdateFilter}
+              onDeleteFilter={handleDeleteFilter}
               appliedFilters={appliedFilters}
             />
           ) : (

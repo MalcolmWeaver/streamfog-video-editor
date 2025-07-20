@@ -22,6 +22,8 @@ interface TimelineControlsProps {
   isPlaying: boolean;
   onPlayPause: () => void;
   onAddNewFilter: (filterData: AppliedFilter) => void;
+  onUpdateFilter: (filterData: AppliedFilter) => void;
+  onDeleteFilter: (id: string) => void;
   appliedFilters?: AppliedFilter[];
 }
 
@@ -37,14 +39,22 @@ const TimelineControls: React.FC<TimelineControlsProps> = ({
   isPlaying,
   onPlayPause,
   onAddNewFilter,
+  onUpdateFilter,
+  onDeleteFilter,
   appliedFilters = [],
-}) => {
+}: TimelineControlsProps) => {
   // State for the "Add New Filter" UI
   const [isAddingFilter, setIsAddingFilter] = useState<boolean>(false);
   const [newFilterStart, setNewFilterStart] = useState<number>(0);
   const [newFilterEnd, setNewFilterEnd] = useState<number>(0);
   const [newFilterLabel, setNewFilterLabel] = useState<string>('New Filter');
 
+  // State for managing existing filters
+  const [showManageFilters, setShowManageFilters] = useState<boolean>(false);
+  const [editingFilterId, setEditingFilterId] = useState<string | null>(null);
+  const [editFilterStart, setEditFilterStart] = useState<number>(0);
+  const [editFilterEnd, setEditFilterEnd] = useState<number>(0);
+  const [editFilterLabel, setEditFilterLabel] = useState<string>('');
   // Ref to the scrubber input element for focus management if needed
   const scrubberRef = useRef<HTMLInputElement>(null);
 
@@ -56,7 +66,14 @@ const TimelineControls: React.FC<TimelineControlsProps> = ({
     if (newFilterStart > duration) {
       setNewFilterStart(duration);
     }
-  }, [duration, newFilterEnd, newFilterStart]);
+    if (editingFilterId && editFilterEnd > duration) {
+        setEditFilterEnd(duration);
+    }
+    if (editingFilterId && editFilterStart > duration) {
+        setEditFilterStart(duration);
+    }
+  }, [duration, newFilterEnd, newFilterStart, editingFilterId, editFilterEnd, editFilterStart]);
+
 
   // Helper to format time into MM:SS (or HH:MM:SS for longer videos)
   const formatTime = (seconds: number): string => {
@@ -110,8 +127,51 @@ const TimelineControls: React.FC<TimelineControlsProps> = ({
     setIsAddingFilter(false);
   };
 
+  const handleEditExistingFilter = (filter: AppliedFilter) => {
+    setEditingFilterId(filter.id);
+    setEditFilterStart(filter.start);
+    setEditFilterEnd(filter.end);
+    setEditFilterLabel(filter.label);
+    setIsAddingFilter(false); // Hide add section when managing
+  };
+  
+  const handleSaveEditFilter = () => {
+    if (!editingFilterId) return;
+
+    if (editFilterStart >= editFilterEnd) {
+        alert('Start time must be before end time!');
+        return;
+    }
+    if (editFilterStart < 0 || editFilterEnd > duration) {
+        alert('Times are out of video bounds!');
+        return;
+    }
+
+    onUpdateFilter({
+      id: editingFilterId,
+      start: editFilterStart,
+      end: editFilterEnd,
+      label: editFilterLabel,
+      color: appliedFilters.find(f => f.id === editingFilterId)?.color, // Retain original color
+    });
+    setEditingFilterId(null); // Exit editing mode
+  };
+
+  const handleCancelEditFilter = () => {
+    setEditingFilterId(null);
+  };
+
+  const handleDeleteExistingFilter = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this filter?')) {
+        onDeleteFilter(id);
+        if (editingFilterId === id) { // If deleting the one being edited
+            setEditingFilterId(null);
+        }
+    }
+  };
+
   return (
-    <div className="w-full mt-6 p-4 bg-gray-700 rounded-lg flex flex-col gap-4">
+      <div className="w-full mt-6 p-4 bg-gray-700 rounded-lg flex flex-col gap-4">
       {/* Play/Pause Button and Current Time/Duration Display */}
       <div className="flex items-center justify-between text-gray-300">
         <button
@@ -153,14 +213,17 @@ const TimelineControls: React.FC<TimelineControlsProps> = ({
         {appliedFilters.map((filter) => (
           <div
             key={filter.id}
-            className="absolute h-full rounded-sm opacity-75"
+            className="absolute h-full rounded-sm opacity-75 group cursor-pointer flex items-center justify-center text-xs font-bold text-white overflow-hidden whitespace-nowrap"
             style={{
               left: `${(filter.start / duration) * 100}%`,
               width: `${((filter.end - filter.start) / duration) * 100}%`,
               backgroundColor: filter.color || '#3B82F6',
             }}
             title={`${filter.label}: ${formatTime(filter.start)} - ${formatTime(filter.end)}`}
-          />
+            onClick={() => handleEditExistingFilter(filter)} // Click to edit
+          >
+            <span className="group-hover:block hidden px-1 py-0.5 bg-gray-900 bg-opacity-75 rounded-sm">Edit</span>
+          </div>
         ))}
         {/* Current Playhead Indicator */}
         <div
@@ -180,25 +243,22 @@ const TimelineControls: React.FC<TimelineControlsProps> = ({
       ) : (
         <div className="mt-4 p-4 bg-gray-600 rounded-lg shadow-inner flex flex-col gap-3">
           <h3 className="text-xl font-semibold text-blue-300 mb-2">Define New Filter Slice</h3>
-          {/* Label Input */}
           <div className="flex items-center gap-2">
-            <label htmlFor="filter-label" className="text-gray-300 w-20">Label:</label>
+            <label htmlFor="new-filter-label" className="text-gray-300 w-20">Label:</label>
             <input
               type="text"
-              id="filter-label"
+              id="new-filter-label"
               value={newFilterLabel}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewFilterLabel(e.target.value)}
               className="flex-1 p-2 rounded-md bg-gray-700 border border-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="e.g., 'Face Blur'"
             />
           </div>
-
-          {/* Start Time Input */}
           <div className="flex items-center gap-2">
-            <label htmlFor="start-time" className="text-gray-300 w-20">Start (s):</label>
+            <label htmlFor="new-start-time" className="text-gray-300 w-20">Start (s):</label>
             <input
               type="number"
-              id="start-time"
+              id="new-start-time"
               value={newFilterStart.toFixed(2)}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewFilterStart(parseFloat(e.target.value))}
               min="0"
@@ -213,13 +273,11 @@ const TimelineControls: React.FC<TimelineControlsProps> = ({
               Set Current
             </button>
           </div>
-
-          {/* End Time Input */}
           <div className="flex items-center gap-2">
-            <label htmlFor="end-time" className="text-gray-300 w-20">End (s):</label>
+            <label htmlFor="new-end-time" className="text-gray-300 w-20">End (s):</label>
             <input
               type="number"
-              id="end-time"
+              id="new-end-time"
               value={newFilterEnd.toFixed(2)}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewFilterEnd(parseFloat(e.target.value))}
               min="0"
@@ -234,8 +292,6 @@ const TimelineControls: React.FC<TimelineControlsProps> = ({
               Set Current
             </button>
           </div>
-
-          {/* Action Buttons for New Filter */}
           <div className="flex justify-end gap-3 mt-3">
             <button
               onClick={handleCancelAddFilter}
@@ -253,11 +309,104 @@ const TimelineControls: React.FC<TimelineControlsProps> = ({
         </div>
       )}
 
-      {/* Placeholder for Filter Options Carousel (future) */}
+      {/* Filter Options Carousel Placeholder (Only shown when adding new filter) */}
       {isAddingFilter && (
         <div className="w-full p-4 bg-gray-600 rounded-lg text-center text-gray-400 mt-4">
           <p>Filter Options Carousel (Coming Soon)</p>
           <p className="text-sm">This is where specific AR lens choices will appear.</p>
+        </div>
+      )}
+
+      {/* Expandable Section for Managing Existing Filters */}
+      {appliedFilters.length > 0 && ( // Only show if there are filters to manage
+        <div className="w-full mt-4">
+          <button
+            onClick={() => setShowManageFilters(!showManageFilters)}
+            className="w-full py-2 px-4 bg-gray-600 hover:bg-gray-700 rounded-lg text-white font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75 flex justify-between items-center"
+          >
+            <span>Manage Existing Filters ({appliedFilters.length})</span>
+            <span>{showManageFilters ? '▲' : '▼'}</span>
+          </button>
+
+          {showManageFilters && (
+            <div className="bg-gray-800 p-4 rounded-lg mt-2 max-h-60 overflow-y-auto">
+              {appliedFilters.map((filter) => (
+                <div key={filter.id} className="flex flex-col md:flex-row items-center justify-between bg-gray-700 p-3 rounded-md mb-2 last:mb-0">
+                  {editingFilterId === filter.id ? (
+                    // Edit Form for individual filter
+                    <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-3 gap-2 items-center text-sm">
+                        <input
+                            type="text"
+                            value={editFilterLabel}
+                            onChange={(e) => setEditFilterLabel(e.target.value)}
+                            className="p-1 rounded-md bg-gray-600 border border-gray-500 text-white w-full"
+                        />
+                        <input
+                            type="number"
+                            value={editFilterStart.toFixed(2)}
+                            onChange={(e) => setEditFilterStart(parseFloat(e.target.value))}
+                            min="0"
+                            max={duration.toFixed(2)}
+                            step="0.01"
+                            className="p-1 rounded-md bg-gray-600 border border-gray-500 text-white w-full"
+                        />
+                        <input
+                            type="number"
+                            value={editFilterEnd.toFixed(2)}
+                            onChange={(e) => setEditFilterEnd(parseFloat(e.target.value))}
+                            min="0"
+                            max={duration.toFixed(2)}
+                            step="0.01"
+                            className="p-1 rounded-md bg-gray-600 border border-gray-500 text-white w-full"
+                        />
+                    </div>
+                  ) : (
+                    // Display mode for individual filter
+                    <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-3 gap-2 items-center text-sm">
+                      <span className="text-purple-300 font-semibold truncate">{filter.label}</span>
+                      <span className="text-gray-300">Start: {formatTime(filter.start)}</span>
+                      <span className="text-gray-300">End: {formatTime(filter.end)}</span>
+                    </div>
+                  )}
+                  <div className="flex gap-2 mt-2 md:mt-0">
+                    {editingFilterId === filter.id ? (
+                      <>
+                        <button
+                          onClick={handleSaveEditFilter}
+                          className="py-1 px-2 bg-green-600 hover:bg-green-700 rounded-md text-xs text-white"
+                          title="Save Changes"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={handleCancelEditFilter}
+                          className="py-1 px-2 bg-gray-500 hover:bg-gray-600 rounded-md text-xs text-white"
+                          title="Cancel Editing"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => handleEditExistingFilter(filter)}
+                        className="py-1 px-2 bg-blue-600 hover:bg-blue-700 rounded-md text-xs text-white"
+                        title="Edit Filter"
+                      >
+                        Edit
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDeleteExistingFilter(filter.id)}
+                      className="py-1 px-2 bg-red-600 hover:bg-red-700 rounded-md text-xs text-white"
+                      title="Delete Filter"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
