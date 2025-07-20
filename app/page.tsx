@@ -1,13 +1,18 @@
 'use client';
 import React, { useRef, useState, useEffect } from 'react';
 import VideoPreviewPlayer from './components/VideoPreviewPlayer';
+import TimelineControls, { AppliedFilter } from './components/TimelineControls'; 
 
 const App = () => {
   // Refs to get direct access to the video and canvas DOM elements.
   // These are defined here because the parent (App) needs to pass them
   // to Snap Camera Kit for processing.
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [duration, setDuration] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [appliedFilters, setAppliedFilters] = useState<AppliedFilter[]>([]);
 
   // State to store the URL of the uploaded video
   const [videoSrc, setVideoSrc] = useState('');
@@ -30,16 +35,68 @@ const App = () => {
   };
 
   /**
-   * Callback function executed when the video metadata has finished loading in VideoPreviewPlayer.
-   * This is a good point to initialize libraries like Snap Camera Kit that need video dimensions.
-   * @param {HTMLVideoElement} videoElement - The video DOM element that just loaded metadata.
+   * Callback from VideoPreviewPlayer when video metadata is loaded.
+   * Sets initial duration and attaches time update listeners.
+   * @param {HTMLVideoElement} videoElement
    */
-  const handleVideoMetadataLoaded = (videoElement: HTMLVideoElement) => {
-    console.log(`Video metadata loaded: ${videoElement.videoWidth}x${videoElement.videoHeight}, Duration: ${videoElement.duration}s`);
+  const handleVideoMetadataLoaded = React.useCallback((videoElement: HTMLVideoElement) => {
+    
     // TODO: ⭐ IMPORTANT: This is the ideal place to initialize Snap Camera Kit.
     // You'll pass videoRef.current and canvasRef.current to it here.
     // (Example integration will come in a later response)
-  };
+    
+    setDuration(videoElement.duration);
+    setCurrentTime(0);
+
+    const handleTimeUpdate = () => setCurrentTime(videoElement.currentTime);
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
+    videoElement.addEventListener('timeupdate', handleTimeUpdate);
+    videoElement.addEventListener('play', handlePlay);
+    videoElement.addEventListener('pause', handlePause);
+
+    // Return a cleanup function to remove event listeners
+    return () => {
+      videoElement.removeEventListener('timeupdate', handleTimeUpdate);
+      videoElement.removeEventListener('play', handlePlay);
+      videoElement.removeEventListener('pause', handlePause);
+    };
+  }, []);
+
+  /**
+   * Callback for scrubbing the video from TimelineControls.
+   * @param {number} newTime - The new time to set the video to.
+   */
+  const handleScrub = React.useCallback((newTime: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  }, []);
+
+  /**
+   * Toggles video play/pause state.
+   */
+  const handlePlayPause = React.useCallback(() => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+    }
+  }, [isPlaying]);
+
+  /**
+   * Callback to add a new filter to the list of applied filters.
+   * @param {AppliedFilter} filterData - The data for the new filter.
+   */
+  const handleAddNewFilter = React.useCallback((filterData: AppliedFilter) => {
+    setAppliedFilters((prevFilters) => [...prevFilters, filterData]);
+    // ⭐ Future: You'll also want to trigger an update to the AR rendering
+    // engine here, possibly re-evaluating which lenses are active based on currentTime.
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -109,30 +166,24 @@ const App = () => {
               onVideoMetadataLoaded={handleVideoMetadataLoaded} // Pass the callback
             />
 
-            // TODO: THIS
-            
-            {videoSrc && ( // Only show timeline if a video is loaded
-                <TimelineControls
-                  duration={duration}
-                  currentTime={currentTime}
-                  onScrub={handleScrub}
-                  isPlaying={isPlaying}
-                  onPlayPause={handlePlayPause}
-                  appliedFilters={dummyAppliedFilters} // Pass dummy filters for visual demo
-                />
-            )}
-            {!videoSrc && ( // Placeholder if no video is loaded
-                <div className="w-full mt-6 p-4 bg-gray-700 rounded-lg text-center text-gray-400">
-                    <p className="text-lg font-medium">Upload a video to see the timeline controls.</p>
-                </div>
-            )}
+            {videoSrc && duration > 0 ? (
+            <TimelineControls
+              duration={duration}
+              currentTime={currentTime}
+              onScrub={handleScrub}
+              isPlaying={isPlaying}
+              onPlayPause={handlePlayPause}
+              onAddNewFilter={handleAddNewFilter}
+              appliedFilters={appliedFilters}
+            />
+          ) : (
+            <div className="w-full mt-6 p-4 bg-gray-700 rounded-lg text-center text-gray-400">
+                <p className="text-lg font-medium">Upload a video to enable timeline controls.</p>
+            </div>
+          )}
         </div>
       </main>
 
-      {/* Footer section */}
-      <footer className="w-full max-w-6xl py-6 text-center text-gray-500 text-sm mt-8">
-        &copy; {new Date().getFullYear()} AR Video Editor. All rights reserved.
-      </footer>
     </div>
   );
 };

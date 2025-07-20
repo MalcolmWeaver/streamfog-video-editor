@@ -45,11 +45,8 @@ const VideoPreviewPlayer = ({ videoSrc, videoRef, canvasRef, onVideoMetadataLoad
 
       videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
 
-      // Cleanup listener when component unmounts or videoSrc changes
       return () => {
         videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        // Important: If videoSrc were created by THIS component, we'd revoke it here.
-        // But App.jsx is still responsible for URL.createObjectURL and its revocation.
       };
     }
   }, [videoSrc, onVideoMetadataLoaded, videoRef, canvasRef]); // Dependencies for the effect
