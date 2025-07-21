@@ -9,7 +9,8 @@ export interface AppliedFilter {
   start: number;
   end: number;
   label: string;
-  color?: string; // Optional color for visualization
+  color: string;
+  filterId: string;
 }
 
 /**
@@ -118,6 +119,7 @@ const TimelineControls: React.FC<TimelineControlsProps> = ({
       end: newFilterEnd,
       label: newFilterLabel,
       color: `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`, // Random color for visualization
+      filterId: '40369030925' 
     });
     setIsAddingFilter(false); // Hide the input form
   };
@@ -153,6 +155,7 @@ const TimelineControls: React.FC<TimelineControlsProps> = ({
       end: editFilterEnd,
       label: editFilterLabel,
       color: appliedFilters.find(f => f.id === editingFilterId)?.color, // Retain original color
+      filterId: appliedFilters.find(f => f.id === editingFilterId)?.filterId || '40369030925',  
     });
     setEditingFilterId(null); // Exit editing mode
   };
