@@ -69,7 +69,7 @@ const App: React.FC = () => {
                         const fetchedLensOptions: LensOption[] = lenses.map(lens => ({
                             id: lens.id,
                             name: lens.name || `Lens ${lens.id.substring(0, 5)}`, // Use name if available, else part of ID
-                            // You might need to add logic here to assign colors or fetch thumbnails if available in Lens metadata
+                            thumbnailUrl: lens.iconUrl,
                             color: `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}` // Assign random color for now
                         }));
                         setAvailableLensOptions(fetchedLensOptions); // Update state with fetched lenses

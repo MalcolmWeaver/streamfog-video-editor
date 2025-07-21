@@ -264,115 +264,145 @@ const TimelineControls: React.FC<TimelineControlsProps> = ({
           </div>
 
           {/* "Add New Filter" Button / Form */}
-          {!isAddingFilter ? (
-            <button
-              onClick={handleAddFilter}
-              className="mt-4 w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75"
-            >
-              Add New Filter
-            </button>
-          ) : (
-            <div className="mt-4 p-4 bg-gray-600 rounded-lg shadow-inner flex flex-col gap-3">
-              <h3 className="text-xl font-semibold text-blue-300 mb-2">Define New Filter Slice</h3>
-              
-              <div className="flex flex-col gap-2">
-                <label className="text-gray-300">Select Lens:</label>
-                {availableLensOptions.length > 0 ? (
-                    <div className="flex overflow-x-auto gap-3 py-2 -mx-4 px-4 scrollbar-hide">
-                    {availableLensOptions.map((lens) => (
-                        <button
-                        key={lens.id} // Use lens.id as key, assuming unique
-                        onClick={() => {
-                            setSelectedLensId(lens.id);
-                            setSelectedLensColor(lens.color || '#3B82F6');
-                        }}
-                        className={`flex-shrink-0 w-24 h-24 rounded-lg flex flex-col items-center justify-center text-xs font-medium border-2 transition-all duration-200
-                            ${selectedLensId === lens.id ? 'border-purple-400 ring-2 ring-purple-400' : 'border-gray-500 hover:border-purple-300'}
-                            `}
-                        style={{ backgroundColor: lens.color || '#3B82F6' }}
-                        >
-                        {lens.thumbnailUrl ? (
-                            <img src={lens.thumbnailUrl} alt={lens.name} className="w-full h-full object-cover rounded-md" />
-                        ) : (
-                            <span className="text-white text-center p-1">{lens.name}</span>
-                        )}
-                        </button>
-                    ))}
-                    </div>
-                ) : (
-                    <p className="text-gray-400 text-sm">No lenses available. Check API token and group ID.</p>
-                )}
-                
-                {selectedLensId && (
-                    <p className="text-sm text-gray-400">Selected: <span className="font-semibold text-purple-300">{availableLensOptions.find(l => l.id === selectedLensId)?.name || selectedLensId}</span></p>
-                )}
-              </div>
+      {!isAddingFilter ? (
+        <button
+          onClick={handleAddFilter}
+          className="mt-4 w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75"
+        >
+          Add New Filter
+        </button>
+      ) : (
+        <div className="mt-4 p-4 bg-gray-800 rounded-lg shadow-inner flex flex-col gap-4 border border-gray-700"> {/* Changed bg to gray-800, added border */}
+          <h3 className="text-xl font-bold text-purple-300 mb-2">Define New Filter Slice</h3> {/* Made title bolder, purple */}
+          
+          <div className="flex flex-col gap-2 bg-gray-700 p-3 rounded-lg border border-gray-600"> {/* Added bg, padding, border */}
+            <label className="text-gray-300 font-medium text-lg">Select A Lens</label> {/* Larger, medium font */}
+            {availableLensOptions.length > 0 ? (
+                <div className="flex overflow-x-auto gap-4 py-2 px-1 custom-scrollbar"> {/* Increased gap, added custom-scrollbar class */}
+                {availableLensOptions.map((lens) => (
+                    <button
+                    key={lens.id} // Use lens.id as key, assuming unique
+                    onClick={() => {
+                        setSelectedLensId(lens.id);
+                        setSelectedLensColor(lens.color || '#3B82F6');
+                    }}
+                     className={`flex-shrink-0 w-28 h-28 rounded-xl flex flex-col items-center justify-center text-center text-sm font-medium border-2 transition-all duration-200 relative overflow-hidden shadow-md
+                        ${selectedLensId === lens.id ? 'border-purple-400 ring-2 ring-purple-400 scale-105' : 'border-gray-600 hover:border-purple-300'}
+                      `}
+                      style={{ backgroundColor: lens.color || '#3B82F6' }}
+                    >
+                      {lens.thumbnailUrl ? (
+                        <>
+                          <img src={lens.thumbnailUrl} alt={lens.name} className="absolute inset-0 w-full h-full object-cover" />
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/60 to-transparent p-2 text-gray-200 font-semibold text-xs leading-tight">
+                            {lens.name}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {/* Icon placeholder - could be an SVG or FontAwesome icon */}
+                          <div className="mb-1 text-2xl text-white">
+                            {/* Example: a simple circle icon based on color */}
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                              <circle cx="12" cy="12" r="10" />
+                            </svg>
+                          </div>
+                          <span className="text-white font-semibold text-base px-1">{lens.name}</span> {/* Bolder, larger text */}
+                        </>
+                      )}
+                      {/* Overlay for selected state */}
+                      {selectedLensId === lens.id && (
+                        <div className="absolute inset-0 bg-purple-500 opacity-65 rounded-xl flex items-center justify-center pointer-events-none">
+                          <svg className="w-8 h-8 text-white opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                ))}
+                </div>
+            ) : (
+                <p className="text-gray-400 text-sm p-2">No lenses available. Check API token and group ID.</p>
+            )}
+            
+            {selectedLensId && (
+                <p className="text-sm text-gray-400 mt-2">Selected: <span className="font-semibold text-purple-300">{availableLensOptions.find(l => l.id === selectedLensId)?.name || selectedLensId}</span></p>
+            )}
+          </div>
+          {/* END Filter/Lens Carousel */}
 
-              <div className="flex items-center gap-2">
-                <label htmlFor="new-filter-label" className="text-gray-300 w-20">Label:</label>
-                <input
-                  type="text"
-                  id="new-filter-label"
-                  value={newFilterLabel}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewFilterLabel(e.target.value)}
-                  className="flex-1 p-2 rounded-md bg-gray-700 border border-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g., 'Face Blur'"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <label htmlFor="new-start-time" className="text-gray-300 w-20">Start (s):</label>
-                <input
-                  type="number"
-                  id="new-start-time"
-                  value={newFilterStart.toFixed(2)}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewFilterStart(parseFloat(e.target.value))}
-                  min="0"
-                  max={duration.toFixed(2)}
-                  step="0.01"
-                  className="flex-1 p-2 rounded-md bg-gray-700 border border-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  onClick={() => setNewFilterStart(parseFloat(currentTime.toFixed(2)))}
-                  className="px-3 py-2 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                >
-                  Set Current
-                </button>
-              </div>
-              <div className="flex items-center gap-2">
-                <label htmlFor="new-end-time" className="text-gray-300 w-20">End (s):</label>
-                <input
-                  type="number"
-                  id="new-end-time"
-                  value={newFilterEnd.toFixed(2)}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewFilterEnd(parseFloat(e.target.value))}
-                  min="0"
-                  max={duration.toFixed(2)}
-                  step="0.01"
-                  className="flex-1 p-2 rounded-md bg-gray-700 border border-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  onClick={() => setNewFilterEnd(parseFloat(currentTime.toFixed(2)))}
-                  className="px-3 py-2 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                >
-                  Set Current
-                </button>
-              </div>
-              <div className="flex justify-end gap-3 mt-3">
-                <button
-                  onClick={handleCancelAddFilter}
-                  className="py-2 px-4 bg-gray-500 hover:bg-gray-600 rounded-lg text-white font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-75"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveFilter}
-                  className="py-2 px-4 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75"
-                >
-                  Save Filter
-                </button>
-              </div>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <label htmlFor="new-filter-label" className="text-gray-300 w-20">Label:</label>
+            <input
+              type="text"
+              id="new-filter-label"
+              value={newFilterLabel}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewFilterLabel(e.target.value)}
+              className="flex-1 p-2 rounded-md bg-gray-700 border border-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., 'Face Blur'"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="new-start-time" className="text-gray-300 w-20">Start:</label>
+            <input
+              type="text" // Change type to "text"
+              inputMode="decimal" // Suggest a numeric keyboard on mobile
+              id="new-start-time" // Or new-end-time, edit-start-time, edit-end-time
+              value={newFilterStart.toFixed(2)} // Or the corresponding state value
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                // Basic validation to allow only numbers and a single decimal
+                const val = e.target.value;
+                if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) { // Allows up to 2 decimal places
+                  setNewFilterStart(parseFloat(val) || 0); // Or the corresponding setter function
+                }
+              }}
+              min="0" // Keep min/max for validation, even with type="text"
+              max={duration.toFixed(2)}
+              className="flex-1 p-2 rounded-md bg-gray-700 border border-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:hidden [&::-webkit-outer-spin-button]:hidden"
+              // ^ Added appearance-none and vendor prefixes to hide spin buttons
+            />
+            <button
+              onClick={() => setNewFilterStart(parseFloat(currentTime.toFixed(2)))}
+              className="px-3 py-2 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              Set Current
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="new-end-time" className="text-gray-300 w-20">End:</label>
+            <input
+              type="number"
+              id="new-end-time"
+              value={newFilterEnd.toFixed(2)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewFilterEnd(parseFloat(e.target.value))}
+              min="0"
+              max={duration.toFixed(2)}
+              step="0.01"
+              className="flex-1 p-2 rounded-md bg-gray-700 border border-gray-500 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={() => setNewFilterEnd(parseFloat(currentTime.toFixed(2)))}
+              className="px-3 py-2 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              Set Current
+            </button>
+          </div>
+          <div className="flex justify-end gap-3 mt-3">
+            <button
+              onClick={handleCancelAddFilter}
+              className="py-2 px-4 bg-gray-500 hover:bg-gray-600 rounded-lg text-white font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-75"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveFilter}
+              className="py-2 px-4 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75"
+            >
+              Save Filter
+            </button>
+          </div>
+        </div>
+      )}
 
           {/* Expandable Section for Managing Existing Filters */}
           {appliedFilters.length > 0 && ( // Only show if there are filters to manage

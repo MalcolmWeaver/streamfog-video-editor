@@ -24,3 +24,29 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+/* In your globals.css or a dedicated CSS file */
+
+/* For WebKit browsers (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 8px; /* Height of the horizontal scrollbar */
+  background-color: #3f3f46; /* Gray-700, background of the scrollbar track */
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #8b5cf6; /* Purple-500, color of the scrollbar thumb */
+  border-radius: 4px;
+  border: 1px solid #52525b; /* Gray-600, a slight border for separation */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #a78bfa; /* Lighter purple on hover */
+}
+
+/* For Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin; /* "auto" or "thin" */
+  scrollbar-color: #8b5cf6 #3f3f46; /* thumb color track color */
+}

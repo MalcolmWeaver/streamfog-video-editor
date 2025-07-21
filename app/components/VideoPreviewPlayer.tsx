@@ -39,8 +39,7 @@ const VideoPreviewPlayer: React.FC<VideoPreviewPlayerProps> = ({
       <video
         ref={videoRef}
         className="absolute inset-0 w-full h-full object-contain"
-        muted // Mute for automatic playback and to avoid audio feedback loops with Camera Kit
-        loop // Loop for continuous AR effect
+        controls
         playsInline // Crucial for mobile devices
         key={videoSrc || 'default-video'} // <--- Important: Add a key to force re-mount if videoSrc changes
       ></video>
