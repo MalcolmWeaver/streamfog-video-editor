@@ -28,6 +28,7 @@ interface TimelineControlsProps {
   appliedFilters?: AppliedFilter[];
 }
 
+const TEMP_FILTER_ID_DEFAULT = '49414230875';
 /**
  * A component to display and control the video timeline, including scrubbing and filter visualization.
  *
@@ -119,7 +120,7 @@ const TimelineControls: React.FC<TimelineControlsProps> = ({
       end: newFilterEnd,
       label: newFilterLabel,
       color: `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`, // Random color for visualization
-      filterId: '40369030925' 
+      filterId: TEMP_FILTER_ID_DEFAULT 
     });
     setIsAddingFilter(false); // Hide the input form
   };
@@ -155,7 +156,7 @@ const TimelineControls: React.FC<TimelineControlsProps> = ({
       end: editFilterEnd,
       label: editFilterLabel,
       color: appliedFilters.find(f => f.id === editingFilterId)?.color, // Retain original color
-      filterId: appliedFilters.find(f => f.id === editingFilterId)?.filterId || '40369030925',  
+      filterId: appliedFilters.find(f => f.id === editingFilterId)?.filterId || TEMP_FILTER_ID_DEFAULT
     });
     setEditingFilterId(null); // Exit editing mode
   };
