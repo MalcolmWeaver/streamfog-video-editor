@@ -26,13 +26,9 @@ const AppContent: React.FC = () => {
     handleUpdateFilter,
     handleDeleteFilter,
     availableLensOptions,
-    isCameraKitSessionReady,
-    cameraKitSessionError,
-    canvasRef,
-    videoRef,
   } = useVideoPlayer();
 
-  const { error: cameraKitBootstrapError } = useCameraKit();
+  const { isCameraKitSessionReady, cameraKitError, cameraKitSessionError} = useCameraKit();
   return (
     <div className="min-h-screen bg-gray-900 text-white font-inter p-4 flex flex-col items-center">
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -40,8 +36,8 @@ const AppContent: React.FC = () => {
       <header className="w-full max-w-6xl py-6 text-center">
         <h1 className="text-4xl font-bold text-purple-400">AR Video Editor</h1>
         <p className="text-lg text-gray-400 mt-2">Apply Snap Camera Kit Lenses to your videos</p>
-        {cameraKitBootstrapError && (
-          <p className="text-red-500 mt-2">Error initializing Camera Kit (Global): {cameraKitBootstrapError.message}</p>
+        {cameraKitError && (
+          <p className="text-red-500 mt-2">Error initializing Camera Kit (Global): {cameraKitError.message}</p>
         )}
         {cameraKitSessionError && (
           <p className="text-red-500 mt-2">Error with Camera Kit Session: {cameraKitSessionError.message}</p>
@@ -59,7 +55,6 @@ const AppContent: React.FC = () => {
           <VideoPreviewPlayer
             key={videoSrc || 'no-video'} // IMPORTANT: Keep this key prop!
             videoSrc={videoSrc}
-            onVideoMetadataLoaded={handleVideoMetadataLoaded}
           />
 
           {videoSrc && duration > 0 ? (

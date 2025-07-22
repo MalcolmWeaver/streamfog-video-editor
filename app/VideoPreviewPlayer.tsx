@@ -16,18 +16,8 @@ const VideoPreviewPlayer: React.FC<VideoPreviewPlayerProps> = ({
     if (videoRef.current && videoSrc) {
       videoRef.current.src = videoSrc;
       videoRef.current.load(); // Load the new video
-
-      const handleLoadedMetadata = () => {
-        onVideoMetadataLoaded(videoRef.current!);
-      };
-
-      videoRef.current.addEventListener('loadedmetadata', handleLoadedMetadata);
-
-      return () => {
-        videoRef.current?.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      };
-    }
-  }, [videoSrc, onVideoMetadataLoaded, videoRef]);
+    }  
+  }, [videoSrc]);
 
   return (
     <div> {/*className="relative w-full aspect-video bg-black rounded-lg overflow-hidden"> */}

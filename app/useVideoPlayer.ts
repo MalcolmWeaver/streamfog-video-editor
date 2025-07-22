@@ -24,7 +24,6 @@ export const useVideoPlayer = (): UseVideoPlayerResult => {
 
     const {
         videoRef,
-        canvasRef,
         availableLensOptions,
         cameraKit,
         cameraKitSession,
