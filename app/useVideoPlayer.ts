@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { CameraKitSession, Lens } from '@snap/camera-kit';
-import { useCameraKit } from './CameraKitProvider'; // Corrected path assuming it's sibling or parent
+import { DEMO_LENS_GROUP_ID, useCameraKit } from './CameraKitProvider'; // Corrected path assuming it's sibling or parent
 import { AppliedFilter, LensOption } from './types';
 
 interface UseVideoPlayerResult {
@@ -18,8 +18,6 @@ interface UseVideoPlayerResult {
     handleDeleteFilter: (id: string) => void;
     setAppliedFilters: React.Dispatch<React.SetStateAction<AppliedFilter[]>>;
     availableLensOptions: LensOption[];
-    isCameraKitSessionReady: boolean;
-    cameraKitSessionError: Error | null;
 }
 
 export const useVideoPlayer = (): UseVideoPlayerResult => {
@@ -30,6 +28,8 @@ export const useVideoPlayer = (): UseVideoPlayerResult => {
         availableLensOptions,
         cameraKit,
         cameraKitSession, 
+        setCameraKitSessionError,
+        isCameraKitSessionReady
     } = useCameraKit();
 
     const [currentTime, setCurrentTime] = useState<number>(0);
@@ -38,8 +38,6 @@ export const useVideoPlayer = (): UseVideoPlayerResult => {
     const [videoSrc, setVideoSrc] = useState<string | null>(null);
     const [appliedFilters, setAppliedFilters] = useState<AppliedFilter[]>([]);
 
-    const [isCameraKitSessionReady, setIsCameraKitSessionReady] = useState<boolean>(false);
-    const [cameraKitSessionError, setCameraKitSessionError] = useState<Error | null>(null);
     const currentActiveLensRef = useRef<Lens | null>(null);
 
     // This ref helps prevent race conditions when effects run out of order or multiple times
@@ -47,6 +45,7 @@ export const useVideoPlayer = (): UseVideoPlayerResult => {
 
     const applyLensById = useCallback(
         async (lensId: string) => {
+            console.log('CALLING APPLY LENS');
             if (!cameraKitSession || !cameraKit) {
                 console.warn('applyLensById: Camera Kit session or instance not ready.');
                 return;
@@ -57,8 +56,8 @@ export const useVideoPlayer = (): UseVideoPlayerResult => {
             }
 
             try {
-                console.log(`applyLensById: Loading and applying lens: ${lensId}`);
-                const lens = await cameraKit.lensRepository.loadLens(lensId, 'a64ee4b4-272f-43c6-b0bc-636085bb7178');
+                console.log(`applyLensById: Loading and applying lens: ${lensId}, from ${DEMO_LENS_GROUP_ID}`);
+                const lens = await cameraKit.lensRepository.loadLens(lensId, DEMO_LENS_GROUP_ID);
                 await cameraKitSession.applyLens(lens);
                 currentActiveLensRef.current = lens;
             } catch (e) {
@@ -90,7 +89,10 @@ export const useVideoPlayer = (): UseVideoPlayerResult => {
 
     const applyDynamicLens = useCallback(
         async (time: number) => {
+            console.log('CALLING APPLY DYNAMIC LENS');
+
             if (!isCameraKitSessionReady) {
+                console.log('IS CAMERA KIT SESSION IS NOT READY');
                 return;
             }
 
@@ -216,7 +218,5 @@ export const useVideoPlayer = (): UseVideoPlayerResult => {
         handleDeleteFilter,
         setAppliedFilters,
         availableLensOptions,
-        isCameraKitSessionReady,
-        cameraKitSessionError,
     };
 };

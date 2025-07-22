@@ -15,7 +15,7 @@ import {LensOption} from './types';
 
 // TODO: This is insecure on github - ENSURE YOU MOVE THIS TO ENVIRONMENT VARIABLES IN PRODUCTION
 const SNAP_CAMERA_KIT_API_TOKEN = 'eyJhbGciOiJIUzI1NiIsImtpZCI6IkNhbnZhc1MyU0hNQUNQcm9kIiwidHlwIjoiSldUIn0.eyJhdWQiOiJjYW52YXMtY2FudmFzYXBpIiwiaXNzIjoiY2FudmFzLXMyc3Rva2VuIiwibmJmIjoxNzUzMTU3NTQ1LCJzdWIiOiJkMjM3MmY5Mi1lZjlkLTRkNWMtYjU0My1lNDFhOGMwOWFlMjR-U1RBR0lOR341NTc4NjkwYy1lNWU1LTQ0NzAtYTAwMS0xOWRhNTZmZGU0ZTYifQ.OpgnY1XIIiVXItYEDDjYHs9oBLTmHY__ytVEibcA7jY'; // Ensure this is loaded securely
-const DEMO_LENS_GROUP_ID = '868e355a-1370-4232-a645-603b66cc4869'; // Your actual Lens Group ID
+export const DEMO_LENS_GROUP_ID = '868e355a-1370-4232-a645-603b66cc4869'; // Your actual Lens Group ID
 
 
 interface CameraKitContextType {
@@ -23,10 +23,12 @@ interface CameraKitContextType {
     canvasRef: React.RefObject<HTMLCanvasElement | null>,
     cameraKit: CameraKit | null;
     cameraKitSession: CameraKitSession | null;
-    isCameraKitReady: boolean;
-    error: Error | null;
     availableLensOptions: Array<LensOption>;
     destroyCameraKitSession: () => void;
+    isCameraKitSessionReady: boolean;
+    cameraKitError: Error | null;
+    cameraKitSessionError: Error | null;
+    setCameraKitSessionError: React.Dispatch<React.SetStateAction<Error | null>> 
 }
 
 const CameraKitContext = createContext<CameraKitContextType | undefined>(undefined);
@@ -39,8 +41,10 @@ export const CameraKitProvider: React.FC<CameraKitProviderProps> = ({ children }
     const [cameraKit, setCameraKit] = useState<CameraKit | null>(null);
     const [cameraKitSession, setCameraKitSession] = useState<CameraKitSession | null>(null);
     const [availableLensOptions, setAvailableLensOptions] = useState<LensOption[]>([]);
-    const [isCameraKitReady, setIsCameraKitReady] = useState<boolean>(false);
-    const [error, setError] = useState<Error | null>(null);
+    const [isCameraKitBootstrapped, setIsCameraKitBootstrapped] = useState<boolean>(false);
+    const [cameraKitError, setCameraKitError] = useState<Error | null>(null);
+    const [isCameraKitSessionReady, setIsCameraKitSessionReady] = useState<boolean>(false);
+    const [cameraKitSessionError, setCameraKitSessionError] = useState<Error | null>(null);
 
     const currentActiveLensRef = useRef<Lens | null>(null); // To track which lens is currently applied by time
 
@@ -53,6 +57,7 @@ export const CameraKitProvider: React.FC<CameraKitProviderProps> = ({ children }
                 console.log('CameraKitProvider: Attempting to bootstrap Camera Kit...');
                 const ck = await bootstrapCameraKit({ apiToken: SNAP_CAMERA_KIT_API_TOKEN });
                 setCameraKit(ck);
+                setIsCameraKitBootstrapped(true);
                 console.log('CameraKitProvider: CameraKit instance bootstrapped successfully.');
 
                 console.log(`CameraKitProvider: Fetching lenses for group: ${DEMO_LENS_GROUP_ID}`);
@@ -74,20 +79,21 @@ export const CameraKitProvider: React.FC<CameraKitProviderProps> = ({ children }
                 }
             } catch (e) {
                 console.error('CameraKitProvider: FATAL ERROR during Camera Kit bootstrap or lens fetch:', e);
-                setError(e instanceof Error ? e : new Error('Unknown Camera Kit initialization error'));
+                setCameraKitError(e instanceof Error ? e : new Error('Unknown Camera Kit initialization error'));
             }
         };
 
-        if (!cameraKit) {
+        if (!cameraKit && !isCameraKitBootstrapped && !cameraKitError) { // Prevent re-running if already bootstrapped or failed
             initGlobalCameraKit();
         }
 
-    }, [cameraKit]); // Only run once when cameraKit is null
+    }, [cameraKit, isCameraKitBootstrapped, cameraKitError])
 
     const initCounter = useRef(0);
 
     useEffect(() => {
         // only run when refs are ready and kit is ready
+        console.log('CAMERA KIT PROVIDER USE EFFECT', cameraKit, cameraKitSession);
         if (!cameraKit || !videoRef.current || !canvasRef.current) return;
         let cancelled = false;
         const thisInit = ++initCounter.current;
@@ -99,7 +105,8 @@ export const CameraKitProvider: React.FC<CameraKitProviderProps> = ({ children }
                 catch (e) { console.warn("destroy failed", e); }
                 if (cancelled || thisInit !== initCounter.current) return;
                 setCameraKitSession(null);
-                setIsCameraKitReady(false);
+                setIsCameraKitSessionReady(false);
+                setCameraKitSessionError(null);
             }
 
             // create new session
@@ -114,16 +121,21 @@ export const CameraKitProvider: React.FC<CameraKitProviderProps> = ({ children }
                     await session.destroy().catch(() => {});
                     return;
                 }
+                if(videoRef.current == null){
+                    console.warn('videoRef is null when trying to setup session')
+                    return
+                }
                 session.setSource(videoRef.current);
                 session.play("live");
+                console.log('SESSION (BTW THIS SHOULD SET is isCameraKitSessionReady to true): ', session);
                 setCameraKitSession(session);
-                setIsCameraKitReady(true);
-                setError(null);
+                setIsCameraKitSessionReady(true);
+                setCameraKitSessionError(null);
             } catch (e) {
                 if (cancelled) return;
                 console.error("init session error", e);
-                setError(e instanceof Error ? e : new Error("Failed to create session"));
-                setIsCameraKitReady(false);
+                setCameraKitSessionError(e instanceof Error ? e : new Error("Failed to create session"));
+                setIsCameraKitSessionReady(false);
                 setCameraKitSession(null);
             }
         };
@@ -150,8 +162,8 @@ export const CameraKitProvider: React.FC<CameraKitProviderProps> = ({ children }
             } finally {
                 setCameraKitSession(null);
                 currentActiveLensRef.current = null;
-                setIsCameraKitReady(false);
-                setError(null);
+                setIsCameraKitBootstrapped(false);
+                setCameraKitError(null);
             }
         }
     }, [cameraKitSession]);
@@ -162,10 +174,12 @@ export const CameraKitProvider: React.FC<CameraKitProviderProps> = ({ children }
         canvasRef,
         cameraKit,
         cameraKitSession,
-        isCameraKitReady,
-        error,
+        cameraKitError,
+        isCameraKitSessionReady,
+        cameraKitSessionError,
         availableLensOptions,
         destroyCameraKitSession,
+        setCameraKitSessionError
     };
 
     return (
