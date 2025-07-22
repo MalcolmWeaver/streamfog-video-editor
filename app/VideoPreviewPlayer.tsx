@@ -1,22 +1,17 @@
 'use client';
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import { useCameraKit } from './CameraKitProvider';
 
 interface VideoPreviewPlayerProps {
   videoSrc: string | null;
-  videoRef: React.RefObject<HTMLVideoElement>;
-  canvasRef: React.RefObject<HTMLCanvasElement>; // Still use this ref
   onVideoMetadataLoaded: (videoElement: HTMLVideoElement) => void;
 }
 
 const VideoPreviewPlayer: React.FC<VideoPreviewPlayerProps> = ({
   videoSrc,
-  videoRef,
-  canvasRef, // Keep this prop
   onVideoMetadataLoaded,
 }) => {
-  // No changes needed here, as long as the parent re-mounts this component
-  // or its key changes when the videoSrc changes, which should provide a new canvas.
-
+  const { videoRef, canvasRef } = useCameraKit();
   useEffect(() => {
     if (videoRef.current && videoSrc) {
       videoRef.current.src = videoSrc;
@@ -34,12 +29,15 @@ const VideoPreviewPlayer: React.FC<VideoPreviewPlayerProps> = ({
     }
   }, [videoSrc, onVideoMetadataLoaded, videoRef]);
 
+  useEffect(()=>{console.log('REFS from video preview player: ', videoRef.current, canvasRef.current)}, [videoRef.current, canvasRef.current]);
+
+
   return (
     <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
       <video
         ref={videoRef}
         className="absolute inset-0 w-full h-full object-contain"
-        controls
+        muted 
         playsInline // Crucial for mobile devices
         key={videoSrc || 'default-video'} // <--- Important: Add a key to force re-mount if videoSrc changes
       ></video>
