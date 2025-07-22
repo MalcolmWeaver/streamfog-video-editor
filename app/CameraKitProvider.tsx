@@ -28,7 +28,8 @@ interface CameraKitContextType {
     isCameraKitSessionReady: boolean;
     cameraKitError: Error | null;
     cameraKitSessionError: Error | null;
-    setCameraKitSessionError: React.Dispatch<React.SetStateAction<Error | null>> 
+    setCameraKitSessionError: React.Dispatch<React.SetStateAction<Error | null>>; 
+    lensGroup: string;
 }
 
 const CameraKitContext = createContext<CameraKitContextType | undefined>(undefined);
@@ -179,7 +180,8 @@ export const CameraKitProvider: React.FC<CameraKitProviderProps> = ({ children }
         cameraKitSessionError,
         availableLensOptions,
         destroyCameraKitSession,
-        setCameraKitSessionError
+        setCameraKitSessionError,
+        lensGroup: DEMO_LENS_GROUP_ID
     };
 
     return (

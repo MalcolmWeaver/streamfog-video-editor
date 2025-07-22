@@ -29,21 +29,18 @@ const VideoPreviewPlayer: React.FC<VideoPreviewPlayerProps> = ({
     }
   }, [videoSrc, onVideoMetadataLoaded, videoRef]);
 
-  useEffect(()=>{console.log('REFS from video preview player: ', videoRef.current, canvasRef.current)}, [videoRef.current, canvasRef.current]);
-
-
   return (
-    <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+    <div> {/*className="relative w-full aspect-video bg-black rounded-lg overflow-hidden"> */}
       <video
         ref={videoRef}
-        className="absolute inset-0 w-full h-full object-contain"
+        className="iabsolute iinset-0 w-full h-full object-contain z-0"
         muted 
         playsInline // Crucial for mobile devices
         key={videoSrc || 'default-video'} // <--- Important: Add a key to force re-mount if videoSrc changes
       ></video>
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+        className="iabsolute iinset-0 w-full h-full object-contain pointer-events-none z-10"
         key={videoSrc ? `canvas-${videoSrc}` : 'canvas-empty'} // <--- Important: Add a key to force re-mount
       ></canvas>
       {!videoSrc && (

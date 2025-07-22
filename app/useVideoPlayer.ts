@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { CameraKitSession, Lens } from '@snap/camera-kit';
-import { DEMO_LENS_GROUP_ID, useCameraKit } from './CameraKitProvider'; // Corrected path assuming it's sibling or parent
+import { useCameraKit } from './CameraKitProvider';
 import { AppliedFilter, LensOption } from './types';
 
 interface UseVideoPlayerResult {
@@ -27,9 +27,10 @@ export const useVideoPlayer = (): UseVideoPlayerResult => {
         canvasRef,
         availableLensOptions,
         cameraKit,
-        cameraKitSession, 
+        cameraKitSession,
         setCameraKitSessionError,
-        isCameraKitSessionReady
+        isCameraKitSessionReady,
+        lensGroup 
     } = useCameraKit();
 
     const [currentTime, setCurrentTime] = useState<number>(0);
@@ -40,30 +41,42 @@ export const useVideoPlayer = (): UseVideoPlayerResult => {
 
     const currentActiveLensRef = useRef<Lens | null>(null);
 
-    // This ref helps prevent race conditions when effects run out of order or multiple times
-    const currentSessionRef = useRef<CameraKitSession | null>(null);
-
     const applyLensById = useCallback(
         async (lensId: string) => {
-            console.log('CALLING APPLY LENS');
-            if (!cameraKitSession || !cameraKit) {
-                console.warn('applyLensById: Camera Kit session or instance not ready.');
+            console.log('applyLensById: Attempting to apply lens.');
+            if (!cameraKitSession || !cameraKit || !isCameraKitSessionReady) {
+                console.warn('applyLensById: Camera Kit session, instance, or readiness not ready. Skipping lens application.');
                 return;
             }
             if (currentActiveLensRef.current?.id === lensId) {
-                console.log(`applyLensById: Lens ${lensId} is already active.`);
+                console.log(`applyLensById: Lens ${lensId} is already active, no need to re-apply.`);
                 return;
             }
 
             try {
-                console.log(`applyLensById: Loading and applying lens: ${lensId}, from ${DEMO_LENS_GROUP_ID}`);
-                const lens = await cameraKit.lensRepository.loadLens(lensId, DEMO_LENS_GROUP_ID);
+                console.log(`applyLensById: Loading lens: ${lensId} from group: ${lensGroup}`);
+                const lens = await cameraKit.lensRepository.loadLens(lensId, lensGroup);
+
+                if (!lens) {
+                    console.error(`applyLensById: loadLens returned null or undefined for lensId: ${lensId}.`);
+                    setCameraKitSessionError(new Error(`Could not load lens ${lensId}.`));
+                    // Attempt to remove any active lens if the new one failed to load
+                    await cameraKitSession.removeLens();
+                    currentActiveLensRef.current = null;
+                    return;
+                }
+                console.log('applyLensById: Lens loaded successfully. Lens object:', lens);
+
+                console.log(`applyLensById: Applying lens: ${lens.id} to session.`);
                 await cameraKitSession.applyLens(lens);
                 currentActiveLensRef.current = lens;
+                console.log(`applyLensById: Successfully applied lens: ${lens.id}`);
             } catch (e) {
-                console.error(`applyLensById: Failed to apply lens ${lensId}:`, e);
-                setCameraKitSessionError(e instanceof Error ? e : new Error(`Failed to apply lens ${lensId}.`));
+                console.error(`applyLensById: CRITICAL ERROR during lens application for ${lensId}:`, e);
+                setCameraKitSessionError(e instanceof Error ? e : new Error(`Failed to apply lens ${lensId}: ${String(e)}`));
                 try {
+                    // Always try to reset the lens state on error
+                    console.log('applyLensById: Attempting to remove lens after application failure.');
                     await cameraKitSession.removeLens();
                     currentActiveLensRef.current = null;
                 } catch (removeErr) {
@@ -71,37 +84,41 @@ export const useVideoPlayer = (): UseVideoPlayerResult => {
                 }
             }
         },
-        [cameraKit, cameraKitSession]
+        [cameraKit, cameraKitSession, isCameraKitSessionReady, lensGroup, setCameraKitSessionError]
     );
 
     const removeCurrentLens = useCallback(async () => {
-        if (cameraKitSession && currentActiveLensRef.current) {
-            console.log('removeCurrentLens: Removing current lens.');
+        if (cameraKitSession && currentActiveLensRef.current && isCameraKitSessionReady) {
+            console.log('removeCurrentLens: Attempting to remove current lens.');
             try {
-                await cameraKitSession.removeLens();
+                await cameraKitSession.removeLens(); // Explicitly apply null to remove
                 currentActiveLensRef.current = null;
+                console.log('removeCurrentLens: Lens removed successfully.');
             } catch (e) {
                 console.error('removeCurrentLens: Error removing lens:', e);
                 setCameraKitSessionError(e instanceof Error ? e : new Error('Failed to remove current lens.'));
             }
+        } else {
+            console.log('removeCurrentLens: No active lens or session not ready to remove.');
         }
-    }, [cameraKitSession]);
+    }, [cameraKitSession, isCameraKitSessionReady, setCameraKitSessionError]);
 
     const applyDynamicLens = useCallback(
         async (time: number) => {
-            console.log('CALLING APPLY DYNAMIC LENS');
-
             if (!isCameraKitSessionReady) {
-                console.log('IS CAMERA KIT SESSION IS NOT READY');
                 return;
             }
 
             const activeFilter = appliedFilters.find((filter) => time >= filter.start && time < filter.end);
 
-            if (activeFilter) {
+            // Check if the current lens is the one that *should* be active
+            if (activeFilter && currentActiveLensRef.current?.id !== activeFilter.filterId) {
+                console.log(`applyDynamicLens: Active filter changed. Applying ${activeFilter.filterId}.`);
                 await applyLensById(activeFilter.filterId);
-            } else {
+            } else if (!activeFilter && currentActiveLensRef.current) {
+                console.log('applyDynamicLens: No active filter at current time. Removing current lens.');
                 await removeCurrentLens();
+            } else {
             }
         },
         [appliedFilters, isCameraKitSessionReady, applyLensById, removeCurrentLens]
@@ -111,32 +128,36 @@ export const useVideoPlayer = (): UseVideoPlayerResult => {
     const handleVideoMetadataLoaded = useCallback((videoElement: HTMLVideoElement) => {
         setDuration(videoElement.duration);
         setCurrentTime(0);
+        console.log('Video metadata loaded. Duration:', videoElement.duration);
     }, []);
 
     const handleVideoTimeUpdate = useCallback(() => {
         if (videoRef.current) {
             const newCurrentTime = videoRef.current.currentTime;
-            setCurrentTime(newCurrentTime);
+            // Only update state if time has significantly changed to avoid excessive re-renders
+            if (Math.abs(newCurrentTime - currentTime) > 0.1 || (newCurrentTime === 0 && currentTime !== 0)) {
+                 setCurrentTime(newCurrentTime);
+            }
             applyDynamicLens(newCurrentTime);
         }
-    }, [applyDynamicLens, videoRef]);
+    }, [applyDynamicLens, videoRef, currentTime]); 
 
     useEffect(() => {
         const videoEl = videoRef.current;
         if (videoEl) {
             videoEl.addEventListener('timeupdate', handleVideoTimeUpdate);
-            videoEl.addEventListener('play', () => setIsPlaying(true));
-            videoEl.addEventListener('pause', () => setIsPlaying(false));
-            videoEl.addEventListener('ended', () => setIsPlaying(false));
+            videoEl.addEventListener('play', () => { setIsPlaying(true); console.log('Video playing.'); });
+            videoEl.addEventListener('pause', () => { setIsPlaying(false); console.log('Video paused.'); });
+            videoEl.addEventListener('ended', () => { setIsPlaying(false); console.log('Video ended.'); });
 
             return () => {
                 videoEl.removeEventListener('timeupdate', handleVideoTimeUpdate);
-                videoEl.removeEventListener('play', () => setIsPlaying(true));
-                videoEl.removeEventListener('pause', () => setIsPlaying(false));
-                videoEl.removeEventListener('ended', () => setIsPlaying(false));
+                videoEl.removeEventListener('play', () => { setIsPlaying(true); console.log('Video playing.'); });
+                videoEl.removeEventListener('pause', () => { setIsPlaying(false); console.log('Video paused.'); });
+                videoEl.removeEventListener('ended', () => { setIsPlaying(false); console.log('Video ended.'); });
             };
         }
-    }, [videoRef, handleVideoTimeUpdate]);
+    }, [videoRef, handleVideoTimeUpdate]); // Ensure handleVideoTimeUpdate is stable
 
     // --- User Interaction Handlers ---
     const handleVideoUpload = useCallback(
@@ -151,7 +172,8 @@ export const useVideoPlayer = (): UseVideoPlayerResult => {
                 setCurrentTime(0);
                 setDuration(0);
                 setIsPlaying(false);
-                setAppliedFilters([]);
+                setAppliedFilters([]); 
+                console.log('Video uploaded:', file.name);
             }
         },
         [videoSrc]
@@ -162,14 +184,15 @@ export const useVideoPlayer = (): UseVideoPlayerResult => {
             if (videoRef.current) {
                 videoRef.current.currentTime = newTime;
                 setCurrentTime(newTime);
-                applyDynamicLens(newTime);
+                applyDynamicLens(newTime); // Immediately apply lens for new scrub time
+                console.log('Video scrubbed to:', newTime);
             }
         },
         [applyDynamicLens, videoRef]
     );
 
     const handlePlayPause = useCallback(() => {
-        console.log('PLAY PAUSE CLICKED. REFS: ', videoRef.current, canvasRef.current);
+        console.log('PLAY PAUSE CLICKED. Current state:', isPlaying);
         if (videoRef.current) {
             if (isPlaying) {
                 videoRef.current.pause();
@@ -180,25 +203,35 @@ export const useVideoPlayer = (): UseVideoPlayerResult => {
     }, [isPlaying, videoRef]);
 
     const handleAddNewFilter = useCallback((filterData: AppliedFilter) => {
-        setAppliedFilters((prevFilters) => [...prevFilters, filterData]);
+        setAppliedFilters((prevFilters) => {
+            const newFilters = [...prevFilters, filterData];
+            console.log('Added new filter:', filterData, 'All filters:', newFilters);
+            return newFilters;
+        });
     }, []);
 
     const handleUpdateFilter = useCallback((updatedFilter: AppliedFilter) => {
-        setAppliedFilters((prevFilters) =>
-            prevFilters.map((filter) => (filter.id === updatedFilter.id ? updatedFilter : filter))
-        );
+        setAppliedFilters((prevFilters) => {
+            const updated = prevFilters.map((filter) => (filter.id === updatedFilter.id ? updatedFilter : filter));
+            console.log('Updated filter:', updatedFilter, 'All filters:', updated);
+            return updated;
+        });
     }, []);
 
     const handleDeleteFilter = useCallback((id: string) => {
-        setAppliedFilters((prevFilters) => prevFilters.filter((filter) => filter.id !== id));
+        setAppliedFilters((prevFilters) => {
+            const remaining = prevFilters.filter((filter) => filter.id !== id);
+            console.log('Deleted filter with ID:', id, 'Remaining filters:', remaining);
+            return remaining;
+        });
     }, []);
 
-    // Cleanup for video object URL
+    // Cleanup for video object URL on component unmount or videoSrc change
     useEffect(() => {
         return () => {
             if (videoSrc) {
                 URL.revokeObjectURL(videoSrc);
-                console.log('Previous video URL revoked on useVideoPlayer unmount.');
+                console.log('Previous video URL revoked on useVideoPlayer unmount or videoSrc change.');
             }
         };
     }, [videoSrc]);
@@ -220,3 +253,4 @@ export const useVideoPlayer = (): UseVideoPlayerResult => {
         availableLensOptions,
     };
 };
+
