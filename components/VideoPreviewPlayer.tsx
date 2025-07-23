@@ -20,6 +20,7 @@ const VideoPreviewPlayer: React.FC = () => {
     availableFilters,
     setAvailableFilters,
     filterTimeline,
+    setFilterTimeline,
     currentTime,
     setCurrentTime,
     isPlaying,
@@ -30,6 +31,36 @@ const VideoPreviewPlayer: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraKitSessionRef = useRef<CameraKitSession | null>(null);
+    
+  // Reset state when video changes
+  useEffect(() => {
+    if (videoURL) {
+      // Reset video state
+      setCurrentTime(0);
+      setIsPlaying(false);
+      setVideoDuration(0);
+      setFilterTimeline([]);
+      
+      // Clear any existing Camera Kit session
+      if (cameraKitSessionRef.current) {
+        console.log('🧹 Cleaning up previous session for new video');
+        cameraKitSessionRef.current.destroy();
+        cameraKitSessionRef.current = null;
+        setCameraKitSession(null);
+        setAvailableFilters([]);
+      }
+      
+      // Reset video element
+      const videoElement = videoRef.current;
+      if (videoElement) {
+        videoElement.currentTime = 0;
+        videoElement.pause();
+      }
+      
+    }
+  }, [videoURL]);
+
+
 
   // Video Metadata Loading and Time Updates
   useEffect(() => {
@@ -59,7 +90,7 @@ const VideoPreviewPlayer: React.FC = () => {
         videoElement.removeEventListener('timeupdate', handleTimeUpdate);
       };
     }
-  }, [setVideoDuration, setCurrentTime]);
+  }, [videoURL]);
 
   // Camera Kit initialization and cleanup
   useEffect(() => {
@@ -209,6 +240,7 @@ const VideoPreviewPlayer: React.FC = () => {
       
       <div className="relative aspect-video bg-black rounded-lg overflow-hidden mb-6">
         <video
+          key={`video-${videoURL}`}
           ref={videoRef}
           src={videoURL || undefined}
           controls={false}
@@ -221,6 +253,7 @@ const VideoPreviewPlayer: React.FC = () => {
           }}
         />
         <canvas
+          key={`canvas-${videoURL}`}
           ref={canvasRef}
           className="absolute inset-0 w-full h-full object-contain pointer-events-none"
           style={{ 

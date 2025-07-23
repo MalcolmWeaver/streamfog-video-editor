@@ -11,10 +11,14 @@ const TimelineControls: React.FC = () => {
 
   useEffect(() => {
     // Update end time when video duration changes
+    console.log('videoDuration changed: ', videoDuration);
     setEndTime(videoDuration);
   }, [videoDuration]);
+  
+  console.log('videoDuration changed: ', videoDuration);
 
   const handleAddFilter = () => {
+    console.log('ADDING FILTER: ', selectedFilterId, startTime, endTime);
     if (selectedFilterId && startTime >= 0 && endTime <= videoDuration && startTime < endTime) {
       const newFilterEntry: FilterTimelineEntry = {
         id: Date.now(), // Unique ID for the entry
@@ -49,7 +53,10 @@ const TimelineControls: React.FC = () => {
             <select
               id="filter-select"
               value={selectedFilterId}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedFilterId(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                  console.log('CHANGING SELECTED FILTER TO: ', e.target, e.target.value); 
+                  setSelectedFilterId(e.target.value)
+              }}
               className="p-2 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-blue-500 focus:border-blue-500"
               disabled={availableFilters.length === 0}
             >
@@ -70,7 +77,10 @@ const TimelineControls: React.FC = () => {
               type="number"
               id="start-time"
               value={startTime}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStartTime(parseFloat(e.target.value))}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  console.log('CHANGING START TIME: ', e.target.value);
+                  setStartTime(parseFloat(e.target.value))
+              }}
               min="0"
               max={videoDuration}
               step="0.1"
