@@ -1,3 +1,4 @@
+'use client';
 import React from 'react';
 import { VideoEditorProvider } from '../context/VideoEditorContext';
 import VideoUpload from '../components/VideoUpload';

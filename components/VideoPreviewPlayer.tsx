@@ -10,7 +10,7 @@ import {
   Lens,
 } from '@snap/camera-kit';
 
-const STAGING_API_TOKEN = 'eyJhbGciOiJIUzI1NiIsImtpZCI6IkNhbnZhc1MyU0hNQUNQcm9kIiwidHlwIjoiSldUIn0.eyJhdWQiOiJjYW52YXMtY2FudmFzYXBpIiwiaXNzIjoiY2FudmFzLXMyc3Rva2VuIiwibmJmIjoxNzUzMjg3NTA0LCJzdWIiOiJkMjM3MmY5Mi1lZjlkLTRkNzctOGQzYS04YjViZDU0NjVlODkifQ.6gG32g8HvZmRL1tyxidMPVmnjXgiyRCg2TD8w_S2C8';
+const STAGING_API_TOKEN = 'eyJhbGciOiJIUzI1NiIsImtpZCI6IkNhbnZhc1MyU0hNQUNQcm9kIiwidHlwIjoiSldUIn0.eyJhdWQiOiJjYW52YXMtY2FudmFzYXBpIiwiaXNzIjoiY2FudmFzLXMyc3Rva2VuIiwibmJmIjoxNzUzMjkzNDYyLCJzdWIiOiJkMjM3MmY5Mi1lZjlkLTRkNWMtYjU0My1lNDFhOGMwOWFlMjR-U1RBR0lOR344ZjE1ODFjZC1iYjY5LTQ3YjYtYjZmMC1mOTA3MjZlNGY2YTMifQ.P7N7-fANJmuAFahYxNImNwsdIDS2aciyECed-74pIxM';
 const LENS_GROUP_ID = '868e355a-1370-4232-a645-603b66cc4869';
 
 const VideoPreviewPlayer: React.FC = () => {
@@ -25,6 +25,7 @@ const VideoPreviewPlayer: React.FC = () => {
     setCurrentTime,
     isPlaying,
     setIsPlaying,
+    videoDuration
   } = useVideoEditor();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -74,18 +75,16 @@ const VideoPreviewPlayer: React.FC = () => {
 
       try {
         console.log("Initializing Camera Kit...");
-        // Use the correct bootstrapCameraKit function
         const cameraKit = await bootstrapCameraKit({
           apiToken: STAGING_API_TOKEN,
         });
 
-        // Create session using the constructor for source and output
         const session = await cameraKit.createSession({
           liveRenderTarget: canvasElement,
         });
         session.setSource(videoElement);
-        cameraKitSessionRef.current = session; // Store the session reference
-        setCameraKitSession(session); // Update context state
+        cameraKitSessionRef.current = session; 
+        setCameraKitSession(session);
 
         // Load lenses from the specified group
         const { lenses, errors} = await cameraKit.lensRepository.loadLensGroups([LENS_GROUP_ID]);
@@ -122,7 +121,7 @@ const VideoPreviewPlayer: React.FC = () => {
   // Apply Filters Based on Timeline and Current Time
   useEffect(() => {
     const session = cameraKitSessionRef.current;
-    if (session) { // Only attempt to apply filters if a session exists
+    if (session) { 
       const activeFilterEntry = filterTimeline.find(
         (f) => currentTime >= f.startTime && currentTime <= f.endTime
       );
@@ -131,7 +130,6 @@ const VideoPreviewPlayer: React.FC = () => {
       session.removeLens();
 
       if (activeFilterEntry && availableFilters) {
-        // Find the *exact* Lens object from the session's lensRepository
         const activeLens = availableFilters.find(
           (availableFilter: Filter) => availableFilter.id === activeFilterEntry.filterId
         );
@@ -145,7 +143,7 @@ const VideoPreviewPlayer: React.FC = () => {
         console.log("No active filters at current time, lenses cleared.");
       }
     }
-  }, [currentTime, filterTimeline, cameraKitSessionRef.current]); // Depend on session ref for re-evaluation
+  }, [currentTime, filterTimeline, availableFilters]);
 
   const handlePlayPause = () => {
     const videoElement = videoRef.current;
@@ -165,19 +163,23 @@ const VideoPreviewPlayer: React.FC = () => {
       <div className="relative w-full max-w-2xl bg-black rounded-lg overflow-hidden">
         <video
           ref={videoRef}
-          src={videoURL}
+          src={videoURL || undefined}
           controls={false}
           className="w-full h-auto max-h-[400px] object-contain rounded-lg"
           onEnded={() => setIsPlaying(false)}
+          playsInline
+          crossOrigin="anonymous"
         />
         {/* Canvas for Camera Kit output - overlays the video */}
         <canvas
           ref={canvasRef}
-          className="absolute top-0 left-0 w-full h-full pointer-events-none"
+          //className="absolute top-0 left-0 w-full h-full pointer-events-none"
           style={{ display: videoURL ? 'block' : 'none' }}
         />
         {!videoURL && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 text-white text-lg rounded-lg">
+          <div 
+            //className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 text-white text-lg rounded-lg"
+            >
             Upload a video to preview
           </div>
         )}
@@ -193,7 +195,7 @@ const VideoPreviewPlayer: React.FC = () => {
           </button>
           <span className="text-white text-sm">
             {/* Using the destructured currentTime directly, which is already available */}
-            {currentTime.toFixed(2)}s / {useVideoEditor().videoDuration.toFixed(2)}s
+            {currentTime.toFixed(2)}s / {videoDuration.toFixed(2)}s
           </span>
         </div>
       )}

@@ -3,7 +3,7 @@ import React, { useRef } from 'react';
 import { useVideoEditor } from '../context/VideoEditorContext';
 
 const VideoUpload: React.FC = () => {
-  const { setVideoFile, setVideoURL, setVideoDuration } = useVideoEditor();
+  const { videoFile, setVideoFile, setVideoURL, setVideoDuration } = useVideoEditor();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -16,7 +16,7 @@ const VideoUpload: React.FC = () => {
       // Reset duration until metadata is loaded by the player
       setVideoDuration(0);
     } else {
-      // In a real app, replace with a custom modal/toast notification
+      //TODO: replace with a custom modal/toast notification
       console.error('Please select a valid video file.');
       setVideoFile(null);
       setVideoURL('');
@@ -40,13 +40,13 @@ const VideoUpload: React.FC = () => {
       >
         Select Video
       </button>
-      {useVideoEditor().videoFile && (
+      {videoFile && (
         <p className="mt-2 text-gray-300 text-sm">
-          Selected: {useVideoEditor().videoFile?.name}
+          Selected: {videoFile?.name}
         </p>
       )}
     </div>
   );
 };
 
- export default VideoUpload; // Uncomment if this were a separate file
+ export default VideoUpload; 
