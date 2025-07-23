@@ -16,6 +16,8 @@ const VideoPreviewPlayer: React.FC = () => {
   const {
     videoURL,
     setVideoDuration,
+    canvasRef,
+    videoRef,
     setCameraKitSession,
     availableFilters,
     setAvailableFilters,
@@ -28,8 +30,6 @@ const VideoPreviewPlayer: React.FC = () => {
     videoDuration,
   } = useVideoEditor();
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraKitSessionRef = useRef<CameraKitSession | null>(null);
     
   // Reset state when video changes
@@ -77,6 +77,7 @@ const VideoPreviewPlayer: React.FC = () => {
           console.log('Video metadata loaded - Canvas sized to:', canvas.width, 'x', canvas.height);
         }
       };
+      console.log('DEBUG - Canvas Ref: ', canvasRef.current);
 
       const handleTimeUpdate = () => {
         setCurrentTime(videoElement.currentTime);
@@ -94,6 +95,10 @@ const VideoPreviewPlayer: React.FC = () => {
 
   // Camera Kit initialization and cleanup
   useEffect(() => {
+    if (!videoRef || !canvasRef){
+        console.error('cannot find video or canvas ref');
+        return;
+    }
     const videoElement = videoRef.current;
     const canvasElement = canvasRef.current;
 

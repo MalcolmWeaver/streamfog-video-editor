@@ -1,5 +1,5 @@
 'use client';
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 import { VideoEditorContextType, Filter, FilterTimelineEntry } from '../types';
 import type { CameraKitSession } from '@snap/camera-kit';
@@ -9,6 +9,8 @@ const VideoEditorContext = createContext<VideoEditorContextType | undefined>(und
 
 export const VideoEditorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [videoURL, setVideoURL] = useState<string>('');
   const [videoDuration, setVideoDuration] = useState<number>(0);
   const [cameraKitSession, setCameraKitSession] = useState<CameraKitSession | null>(null);
@@ -30,6 +32,8 @@ export const VideoEditorProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const value: VideoEditorContextType = {
     videoFile,
     setVideoFile,
+    canvasRef,
+    videoRef,
     videoURL,
     setVideoURL,
     videoDuration,

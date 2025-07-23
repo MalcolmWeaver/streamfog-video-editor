@@ -14,6 +14,8 @@ export interface VideoEditorContextType {
   videoFile: File | null;
   setVideoFile: React.Dispatch<React.SetStateAction<File | null>>;
   videoURL: string;
+  canvasRef: React.Ref<HTMLCanvasElement | null>;
+  videoRef: React.Ref<HTMLVideoElement | null>;
   setVideoURL: React.Dispatch<React.SetStateAction<string>>;
   videoDuration: number;
   setVideoDuration: React.Dispatch<React.SetStateAction<number>>;
