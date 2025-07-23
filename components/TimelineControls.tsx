@@ -38,7 +38,7 @@ const TimelineControls: React.FC = () => {
   };
 
   return (
-    <div className="p-4 bg-gray-800 rounded-lg shadow-md col-span-2">
+    <div className="p-4 bg-gray-800 rounded-lg shadow-md">
       <h2 className="text-xl font-semibold text-white mb-4">Timeline Controls</h2>
 
       <div className="mb-6">
