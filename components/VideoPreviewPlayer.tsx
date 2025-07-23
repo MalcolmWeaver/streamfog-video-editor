@@ -39,9 +39,11 @@ const VideoPreviewPlayer: React.FC = () => {
       const handleLoadedMetadata = () => {
         setVideoDuration(videoElement.duration);
         const canvas = canvasRef.current;
-        if (canvas) {
-          canvas.width = videoElement.videoWidth || 640;
-          canvas.height = videoElement.videoHeight || 480;
+        if (canvas && videoElement.videoWidth && videoElement.videoHeight) {
+          // Ensure canvas matches video dimensions exactly
+          canvas.width = videoElement.videoWidth;
+          canvas.height = videoElement.videoHeight;
+          console.log('Video metadata loaded - Canvas sized to:', canvas.width, 'x', canvas.height);
         }
       };
 
@@ -94,8 +96,14 @@ const VideoPreviewPlayer: React.FC = () => {
         });
 
         if (videoElement.videoWidth && videoElement.videoHeight) {
+          // Set canvas to exact video dimensions
           canvasElement.width = videoElement.videoWidth;
           canvasElement.height = videoElement.videoHeight;
+          console.log('Canvas dimensions set to:', canvasElement.width, 'x', canvasElement.height);
+        } else {
+          // Fallback dimensions
+          canvasElement.width = 640;
+          canvasElement.height = 480;
         }
 
         const session = await cameraKit.createSession({
@@ -113,6 +121,10 @@ const VideoPreviewPlayer: React.FC = () => {
 
         try {
           await session.play();
+          console.log('Camera Kit session started successfully');
+          
+          // Force a render to ensure canvas is displaying
+          await new Promise(resolve => setTimeout(resolve, 100));
         } catch (playError) {
           console.error('Error starting Camera Kit session:', playError);
         }
@@ -192,10 +204,10 @@ const VideoPreviewPlayer: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 flex flex-col items-center justify-center relative w-full">
-      <h2 className="text-2xl font-semibold mb-4 text-purple-300">Preview</h2>
+    <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+      <h2 className="text-xl font-semibold text-purple-300 mb-6 text-center">Video Preview</h2>
       
-      <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+      <div className="relative aspect-video bg-black rounded-lg overflow-hidden mb-6">
         <video
           ref={videoRef}
           src={videoURL || undefined}
@@ -204,23 +216,29 @@ const VideoPreviewPlayer: React.FC = () => {
           onEnded={() => setIsPlaying(false)}
           crossOrigin="anonymous"
           playsInline
+          style={{ 
+            visibility: videoURL && cameraKitSessionRef.current ? 'hidden' : 'visible'
+          }}
         />
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-          style={{ display: videoURL ? 'block' : 'none' }}
+          style={{ 
+            display: videoURL ? 'block' : 'none',
+            zIndex: 10
+          }}
         />
         {!videoURL && (
           <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-lg">
-            No video loaded.
+            Upload a video to see preview
           </div>
         )}
       </div>
 
       {videoURL ? (
-        <div className="w-full mt-6">
+        <div className="space-y-4">
           {/* Play/Pause Controls */}
-          <div className="flex items-center justify-center space-x-4 mb-4">
+          <div className="flex items-center justify-center">
             <button
               onClick={handlePlayPause}
               className="flex items-center justify-center w-12 h-12 bg-purple-600 hover:bg-purple-700 rounded-full transition-colors duration-200"
@@ -235,6 +253,10 @@ const VideoPreviewPlayer: React.FC = () => {
                 </svg>
               )}
             </button>
+          </div>
+
+          {/* Time Display */}
+          <div className="text-center">
             <span className="text-white text-sm font-medium">
               {Math.floor(currentTime / 60)}:{(currentTime % 60).toFixed(0).padStart(2, '0')} / {Math.floor(videoDuration / 60)}:{(videoDuration % 60).toFixed(0).padStart(2, '0')}
             </span>
@@ -252,8 +274,8 @@ const VideoPreviewPlayer: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="w-full mt-6 p-4 bg-gray-700 rounded-lg text-center text-gray-400">
-          <p className="text-lg font-medium">Upload a video to enable timeline controls.</p>
+        <div className="text-center p-6 bg-gray-700 rounded-lg">
+          <p className="text-gray-400">Upload a video to enable controls</p>
         </div>
       )}
     </div>
