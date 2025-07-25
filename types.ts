@@ -29,4 +29,6 @@ export interface VideoEditorContextType {
   setCurrentTime: React.Dispatch<React.SetStateAction<number>>;
   isPlaying: boolean;
   setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
+  handlePlayPause: () => void;
+  handleScrub: (newTime: number) => void;
 }

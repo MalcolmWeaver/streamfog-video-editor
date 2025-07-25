@@ -18,6 +18,36 @@ export const VideoEditorProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [filterTimeline, setFilterTimeline] = useState<FilterTimelineEntry[]>([]);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  
+  const handlePlayPause = () => {
+    if (!videoRef) {
+        console.error('TRYING TO PLAY/PAUSE WHEN VIDEO ELEMENT REF IS NOT DEFINED');
+        return;
+    }
+    const videoElement = videoRef.current;
+    if (videoElement) {
+      if (videoElement.paused) {
+        videoElement.play().catch(err => console.error("Play failed", err));
+        setIsPlaying(true);
+      } else {
+        videoElement.pause();
+        setIsPlaying(false);
+      }
+    }
+  };
+
+  const handleScrub = (newTime: number) => {
+    if (!videoRef) {
+        console.error('TRYING TO SCRUB WHEN VIDEO ELEMENT REF IS NOT DEFINED');
+        return;
+    }
+    const videoElement = videoRef.current;
+    const time = Math.max(0, Math.min(newTime, videoDuration));
+    if (videoElement && isFinite(time)) {
+      videoElement.currentTime = time;
+      setCurrentTime(time);
+    }
+  };
 
   // Effect to clean up video URL when component unmounts or video changes
   useEffect(() => {
@@ -48,6 +78,8 @@ export const VideoEditorProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setCurrentTime,
     isPlaying,
     setIsPlaying,
+    handlePlayPause,
+    handleScrub
   };
 
   return (

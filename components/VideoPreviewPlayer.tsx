@@ -28,6 +28,8 @@ const VideoPreviewPlayer: React.FC = () => {
     isPlaying,
     setIsPlaying,
     videoDuration,
+    handleScrub,
+    handlePlayPause
   } = useVideoEditor();
 
   const cameraKitSessionRef = useRef<CameraKitSession | null>(null);
@@ -212,33 +214,6 @@ const VideoPreviewPlayer: React.FC = () => {
     }
   }, [currentTime, filterTimeline, availableFilters]);
 
-  const handlePlayPause = () => {
-    const videoElement = videoRef.current;
-    
-    if (videoElement) {
-      if (isPlaying) {
-        videoElement.pause();
-      } else {
-        videoElement.play().catch(err => {
-          console.error('Video play failed:', err);
-        });
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    const videoElement = videoRef.current;
-    if (!videoElement || videoDuration === 0) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const newTime = (clickX / rect.width) * videoDuration;
-    
-    videoElement.currentTime = newTime;
-    setCurrentTime(newTime);
-  };
-
   return (
     <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
       <h2 className="text-xl font-semibold text-purple-300 mb-6 text-center">Video Preview</h2>
@@ -303,7 +278,7 @@ const VideoPreviewPlayer: React.FC = () => {
           {/* Progress Bar */}
           <div 
             className="w-full h-2 bg-gray-700 rounded-full cursor-pointer overflow-hidden"
-            onClick={handleSeek}
+            onClick={handleScrub}
           >
             <div 
               className="h-full bg-purple-500 transition-all duration-100 ease-linear"
