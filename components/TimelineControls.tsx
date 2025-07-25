@@ -4,10 +4,37 @@ import { useVideoEditor } from '../context/VideoEditorContext';
 import { FilterTimelineEntry } from '../types';
 
 const TimelineControls: React.FC = () => {
-  const { availableFilters, filterTimeline, setFilterTimeline, videoDuration, currentTime } = useVideoEditor();
+  const { 
+      handleScrub,
+      handlePlayPause,
+      isPlaying,
+      availableFilters, 
+      filterTimeline, 
+      setFilterTimeline, 
+      videoDuration, 
+      currentTime 
+  } = useVideoEditor();
+  
+  const [isAddingFilter, setIsAddingFilter] = useState<boolean>(false);
   const [selectedFilterId, setSelectedFilterId] = useState<string>('');
   const [startTime, setStartTime] = useState<number>(0);
   const [endTime, setEndTime] = useState<number>(0);
+
+  // -- State for "Add New Filter" form --
+  const [newFilterLabel, setNewFilterLabel] = useState<string>('New Filter');
+  const [newFilterStartTime, setNewFilterStartTime] = useState<number>(0);
+  const [newFilterEndTime, setNewFilterEndTime] = useState<number>(0);
+  const [selectedLensId, setSelectedLensId] = useState<string>('');
+
+  const [editState, setEditState] = useState<FilterTimelineEntry | null>(null);
+
+  // Syncing UI state with context
+  useEffect(() => {
+    // When a video loads, pre-select the first available filter
+    if (availableFilters.length > 0 && !selectedLensId) {
+      setSelectedLensId(availableFilters[0].id);
+    }
+  }, [availableFilters, selectedLensId]);
 
   useEffect(() => {
     // Update end time when video duration changes
@@ -32,7 +59,7 @@ const TimelineControls: React.FC = () => {
       setStartTime(0);
       setEndTime(videoDuration);
     } else {
-      // TODO: replace with a custom modal/toast notification
+      // TODO: replace with a custom modal notification
       console.error('Please select a filter and ensure valid start/end times.');
     }
   };
