@@ -27,9 +27,13 @@ const TimelineControls: React.FC = () => {
 
     // -- State for "Add New Filter" form --
     const [newFilterLabel, setNewFilterLabel] = useState<string>('New Filter');
-    const [newFilterStartTime, setNewFilterStartTime] = useState<number | "">( "");
+    const [newFilterStartTime, setNewFilterStartTime] = useState<number>(0) 
+    const [rawStart, setRawStart] = useState<string>("");
+
 
     const [newFilterEndTime, setNewFilterEndTime] = useState<number>(0);
+    const [rawEnd, setRawEnd] = useState<string>("");
+
     const [selectedLensId, setSelectedLensId] = useState<string>('');
 
     const [editState, setEditState] = useState<FilterTimelineEntry | null>(null);
@@ -55,28 +59,10 @@ const TimelineControls: React.FC = () => {
 
     // EVENT HANDLERS
 
-    // helper for new-form input changes
-    const handleNewTimeChange = (field: "startTime" | "endTime") => (e: React.ChangeEvent<HTMLInputElement>) => {
-        const vRaw = e.target.value;
-        if (vRaw == "") {
-          setNewFilterStartTime("");
-        } else {
-            let v = parseFloat(vRaw);
-            if (isNaN(v)) v = 0;
-            v = Math.max(0, Math.min(videoDuration, v));
-            if (field === "startTime") {
-                setNewFilterStartTime(v);
-                // ensure end >= start
-                if (v > newFilterEndTime) setNewFilterEndTime(v);
-            } else {
-                setNewFilterEndTime(v);
-                // ensure start <= end
-                if (v < newFilterStartTime) setNewFilterStartTime(v);
-            }
-        }
-    };
 
     const handleStartAddNewFilter = () => {
+        setRawEnd('0.00');
+        setRawStart('0.00');
         setIsAddingFilter(true);
         const start = parseFloat(currentTime.toFixed(2));
         const end = parseFloat(Math.min(currentTime + 5, videoDuration).toFixed(2));
@@ -85,31 +71,6 @@ const TimelineControls: React.FC = () => {
         setNewFilterLabel('New Filter');
         if (!selectedLensId && availableFilters.length > 0) {
             setSelectedLensId(availableFilters[0].id);
-        }
-    };
-
-    const handleEditTimeChange = (field: "startTime" | "endTime") => (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!editState) return;
-        const vRaw = e.target.value;
-        if (vRaw == "") {
-            const updated = { ...editState, [field]: '' };
-            setEditState(updated);
-        } else {
-
-            let v = parseFloat(e.target.value);
-            if (isNaN(v)) v = 0;
-            v = Math.max(0, Math.min(videoDuration, v));
-
-            const updated = { ...editState, [field]: v };
-            // also enforce start ≤ end
-            if (field === "startTime" && v > updated.endTime) {
-                updated.endTime = v;
-            }
-            if (field === "endTime" && v < updated.startTime) {
-                updated.startTime = v;
-            }
-
-            setEditState(updated);
         }
     };
 
@@ -245,29 +206,54 @@ const TimelineControls: React.FC = () => {
             <div className="flex flex-col gap-1">
               <label htmlFor="new-start-time" className="text-gray-300 text-sm">Start Time (s):</label>
               <div className="flex gap-2">
-                 <input
-                    type="number"
-                    id="new-start-time"
-                    value={newFilterStartTime}
-                    onChange={handleNewTimeChange("startTime")}
-                    className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
-                    step="0.1" min="0" max={videoDuration}
+                <input
+                  type="number"
+                  value={rawStart}
+                  onChange={(e) => setRawStart(e.target.value)}
+                  onBlur={() => {
+                    let v = parseFloat(rawStart);
+                    if (isNaN(v)) v = 0;
+                    v = Math.max(0, Math.min(videoDuration, v));
+                    setNewFilterStartTime(v);
+                    setRawStart(v.toFixed(2)); // show the clamped number
+                  }}
+                  placeholder="0.00"
+                  className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
                 />
-                <button onClick={() => setNewFilterStartTime(currentTime)} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
+ 
+                <button 
+                    onClick={() => { 
+                        setRawStart(currentTime.toFixed(2)); 
+                        setNewFilterStartTime(currentTime);
+                    }}
+                    className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white"
+                >Set</button>
               </div>
             </div>
             <div className="flex flex-col gap-1">
               <label htmlFor="new-end-time" className="text-gray-300 text-sm">End Time (s):</label>
                <div className="flex gap-2">
                 <input
-                    type="number"
-                    id="new-end-time"
-                    value={newFilterEndTime}
-                    onChange={handleNewTimeChange("endTime")}
-                    className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
-                    step="0.1" min="0" max={videoDuration}
+                  type="number"
+                  value={rawEnd}
+                  onChange={(e) => setRawEnd(e.target.value)}
+                  onBlur={() => {
+                    let v = parseFloat(rawEnd);
+                    if (isNaN(v)) v = 0;
+                    v = Math.max(0, Math.min(videoDuration, v));
+                    setNewFilterEndTime(v);
+                    setRawEnd(v.toFixed(2)); // show the clamped number
+                  }}
+                  placeholder="0.00"
+                  className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
                 />
-                <button onClick={() => setNewFilterEndTime(currentTime)} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
+                <button 
+                    onClick={() => {
+                        setRawEnd(currentTime.toFixed(2));
+                        setNewFilterEndTime(currentTime);
+                    }}
+                    className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white"
+                >Set</button>
               </div>
             </div>
           </div>
@@ -330,14 +316,40 @@ const TimelineControls: React.FC = () => {
                             <div className="flex flex-col gap-1">
                                 <label className="text-gray-400 text-xs">Start (s)</label>
                                 <div className="flex gap-2">
-                                    <input type="number" value={editState.startTime} onChange={handleEditTimeChange("startTime")} className="p-2 rounded-md bg-gray-700 text-white w-full" step="0.1"/>
+                                    <input
+                                      type="number"
+                                      value={rawStart}
+                                      onChange={(e) => setRawStart(e.target.value)}
+                                      onBlur={() => {
+                                        let v = parseFloat(rawStart);
+                                        if (isNaN(v)) v = 0;
+                                        v = Math.max(0, Math.min(videoDuration, v));
+                                        setNewFilterStartTime(v);
+                                        setRawStart(v.toFixed(2)); // show the clamped number
+                                      }}
+                                      placeholder="0.00"
+                                      className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
+                                    />
                                     <button onClick={() => setEditState({...editState, startTime: currentTime})} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
                                 </div>
                             </div>
                             <div className="flex flex-col gap-1">
                                 <label className="text-gray-400 text-xs">End (s)</label>
                                 <div className="flex gap-2">
-                                    <input type="number" value={editState.endTime} onChange={handleEditTimeChange("endTime")} className="p-2 rounded-md bg-gray-700 text-white w-full" step="0.1"/>
+                                    <input
+                                      type="number"
+                                      value={rawStart}
+                                      onChange={(e) => setRawStart(e.target.value)}
+                                      onBlur={() => {
+                                        let v = parseFloat(rawStart);
+                                        if (isNaN(v)) v = 0;
+                                        v = Math.max(0, Math.min(videoDuration, v));
+                                        setNewFilterStartTime(v);
+                                        setRawStart(v.toFixed(2)); // show the clamped number
+                                      }}
+                                      placeholder="0.00"
+                                    />
+
                                     <button onClick={() => setEditState({...editState, endTime: currentTime})} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
                                 </div>
                             </div>
