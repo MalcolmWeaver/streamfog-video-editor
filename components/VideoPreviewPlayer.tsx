@@ -93,7 +93,7 @@ const VideoPreviewPlayer: React.FC = () => {
 
   // Camera Kit initialization and cleanup
   useEffect(() => {
-    if (!videoRef || !canvasRef){
+    if (!canvasRef || !('current' in canvasRef) || !videoRef || !('current' in videoRef) || !videoRef.current || !canvasRef.current) {
         console.error('cannot find video or canvas ref');
         return;
     }
@@ -128,21 +128,30 @@ const VideoPreviewPlayer: React.FC = () => {
         const cameraKit = await bootstrapCameraKit({
           apiToken: STAGING_API_TOKEN,
         });
+         if (videoElement.videoWidth && videoElement.videoHeight) {
+            // Set canvas to EXACT video dimensions - no scaling
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+            
+            // Set CSS size to maintain aspect ratio while fitting container
+            const aspectRatio = videoElement.videoWidth / videoElement.videoHeight;
+            const containerWidth = canvasElement.parentElement?.clientWidth || 640;
+            const displayWidth = Math.min(containerWidth, videoElement.videoWidth);
+            const displayHeight = displayWidth / aspectRatio;
+            
+            canvasElement.style.width = `${displayWidth}px`;
+            canvasElement.style.height = `${displayHeight}px`;
+            
+            console.log('Canvas internal resolution:', canvasElement.width, 'x', canvasElement.height);
+            console.log('Canvas display size:', displayWidth, 'x', displayHeight);
+          }
 
-        if (videoElement.videoWidth && videoElement.videoHeight) {
-          // Set canvas to exact video dimensions
-          canvasElement.width = videoElement.videoWidth;
-          canvasElement.height = videoElement.videoHeight;
-          console.log('Canvas dimensions set to:', canvasElement.width, 'x', canvasElement.height);
-        } else {
-          // Fallback dimensions
-          canvasElement.width = 640;
-          canvasElement.height = 480;
-        }
+          const session = await cameraKit.createSession({
+            liveRenderTarget: canvasElement,
+            renderWhileTabHidden: true, // Want to be able to switch tabs
+          });
 
-        const session = await cameraKit.createSession({
-          liveRenderTarget: canvasElement,
-        });
+
 
         session.setSource(videoElement);
         cameraKitSessionRef.current = session;

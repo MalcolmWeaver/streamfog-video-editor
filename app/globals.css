@@ -59,3 +59,10 @@ body {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+canvas {
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
