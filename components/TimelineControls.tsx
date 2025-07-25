@@ -4,144 +4,372 @@ import { useVideoEditor } from '../context/VideoEditorContext';
 import { FilterTimelineEntry } from '../types';
 
 const TimelineControls: React.FC = () => {
-  const { availableFilters, filterTimeline, setFilterTimeline, videoDuration, currentTime } = useVideoEditor();
-  const [selectedFilterId, setSelectedFilterId] = useState<string>('');
-  const [startTime, setStartTime] = useState<number>(0);
-  const [endTime, setEndTime] = useState<number>(0);
-
-  useEffect(() => {
-    // Update end time when video duration changes
-    console.log('videoDuration changed: ', videoDuration);
-    setEndTime(videoDuration);
-  }, [videoDuration]);
+  const { 
+      handleScrub,
+      handlePlayPause,
+      isPlaying,
+      availableFilters, 
+      filterTimeline, 
+      setFilterTimeline, 
+      videoDuration, 
+      currentTime 
+  } = useVideoEditor();
   
-  console.log('videoDuration changed: ', videoDuration);
+  //const [selectedFilterId, setSelectedFilterId] = useState<string>('');
+  //const [startTime, setStartTime] = useState<number>(0);
+  //const [endTime, setEndTime] = useState<number>(0);
 
-  const handleAddFilter = () => {
-    console.log('ADDING FILTER: ', selectedFilterId, startTime, endTime);
-    if (selectedFilterId && startTime >= 0 && endTime <= videoDuration && startTime < endTime) {
-      const newFilterEntry: FilterTimelineEntry = {
-        id: Date.now(), // Unique ID for the entry
-        filterId: selectedFilterId,
-        startTime: parseFloat(startTime.toString()), // Ensure number type
-        endTime: parseFloat(endTime.toString()),     // Ensure number type
-      };
-      setFilterTimeline((prev) => [...prev, newFilterEntry]);
-      // Reset form
-      setSelectedFilterId('');
-      setStartTime(0);
-      setEndTime(videoDuration);
-    } else {
-      // TODO: replace with a custom modal/toast notification
-      console.error('Please select a filter and ensure valid start/end times.');
+  // -- Local UI State
+  const [isAddingFilter, setIsAddingFilter] = useState<boolean>(false);
+  const [showManageFilters, setShowManageFilters] = useState<boolean>(false);
+  const [editingFilterId, setEditingFilterId] = useState<number | null>(null);
+
+  // -- State for "Add New Filter" form --
+  const [newFilterLabel, setNewFilterLabel] = useState<string>('New Filter');
+  const [newFilterStartTime, setNewFilterStartTime] = useState<number>(0);
+  const [newFilterEndTime, setNewFilterEndTime] = useState<number>(0);
+  const [selectedLensId, setSelectedLensId] = useState<string>('');
+
+  const [editState, setEditState] = useState<FilterTimelineEntry | null>(null);
+
+  // Syncing UI state with context
+  useEffect(() => {
+    // When a video loads, pre-select the first available filter
+    if (availableFilters.length > 0 && !selectedLensId) {
+      setSelectedLensId(availableFilters[0].id);
+    }
+  }, [availableFilters, selectedLensId]);
+
+  const formatTime = (seconds: number): string => {
+    if (isNaN(seconds) || seconds < 0) return '00:00';
+    return new Date(seconds * 1000).toISOString().substr(14, 5);
+  };
+
+  // EVENT HANDLERS
+  const handleStartAddNewFilter = () => {
+    setIsAddingFilter(true);
+    const start = parseFloat(currentTime.toFixed(2));
+    const end = parseFloat(Math.min(currentTime + 5, videoDuration).toFixed(2));
+    setNewFilterStartTime(start);
+    setNewFilterEndTime(end);
+    setNewFilterLabel('New Filter');
+    if (!selectedLensId && availableFilters.length > 0) {
+      setSelectedLensId(availableFilters[0].id);
     }
   };
 
-  const handleDeleteFilter = (id: number) => {
-    setFilterTimeline((prev) => prev.filter((f) => f.id !== id));
+  const handleSaveNewFilter = () => {
+    if (!selectedLensId) {
+      alert('Please select a lens for the filter.');
+      return;
+    }
+    if (newFilterStartTime >= newFilterEndTime) {
+      alert('Start time must be before end time.');
+      return;
+    }
+
+    const newEntry: FilterTimelineEntry = {
+      id: Date.now(),
+      filterId: selectedLensId,
+      label: newFilterLabel || 'Untitled Filter',
+      startTime: newFilterStartTime,
+      endTime: newFilterEndTime,
+    };
+
+    setFilterTimeline((prev) => [...prev, newEntry]);
+    setIsAddingFilter(false);
   };
 
-  return (
-    <div className="p-4 bg-gray-800 rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold text-white mb-4">Timeline Controls</h2>
+  const handleStartEditing = (filter: FilterTimelineEntry) => {
+    setEditingFilterId(filter.id);
+    setEditState({
+        label: filter.label,
+        startTime: filter.startTime,
+        endTime: filter.endTime
+    });
+  };
 
-      <div className="mb-6">
-        <h3 className="text-lg font-medium text-white mb-2">Add Filter to Timeline</h3>
-        <div className="flex flex-wrap items-end gap-4 mb-4">
-          <div className="flex flex-col">
-            <label htmlFor="filter-select" className="text-gray-300 text-sm mb-1">Filter:</label>
-            <select
-              id="filter-select"
-              value={selectedFilterId}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                  console.log('CHANGING SELECTED FILTER TO: ', e.target, e.target.value); 
-                  setSelectedFilterId(e.target.value)
-              }}
-              className="p-2 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-blue-500 focus:border-blue-500"
-              disabled={availableFilters.length === 0}
-            >
-              <option value="">Select a filter</option>
-              {availableFilters.map((filter) => (
-                <option key={filter.id} value={filter.id}>
-                  {filter.name}
-                </option>
-              ))}
-            </select>
-            {availableFilters.length === 0 && (
-              <p className="text-red-400 text-xs mt-1">No filters available. Load a video first.</p>
-            )}
-          </div>
-          <div className="flex flex-col">
-            <label htmlFor="start-time" className="text-gray-300 text-sm mb-1">Start Time (s):</label>
-            <input
-              type="number"
-              id="start-time"
-              value={startTime}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  console.log('CHANGING START TIME: ', e.target.value);
-                  setStartTime(parseFloat(e.target.value))
-              }}
-              min="0"
-              max={videoDuration}
-              step="0.1"
-              className="p-2 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-blue-500 focus:border-blue-500 w-24"
-            />
-          </div>
-          <div className="flex flex-col">
-            <label htmlFor="end-time" className="text-gray-300 text-sm mb-1">End Time (s):</label>
-            <input
-              type="number"
-              id="end-time"
-              value={endTime}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEndTime(parseFloat(e.target.value))}
-              min="0"
-              max={videoDuration}
-              step="0.1"
-              className="p-2 rounded-md bg-gray-700 text-white border border-gray-600 focus:ring-blue-500 focus:border-blue-500 w-24"
-            />
-          </div>
-          <button
-            onClick={handleAddFilter}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-300 ease-in-out shadow-lg"
-            disabled={!selectedFilterId || videoDuration === 0}
-          >
-            Add Filter
-          </button>
+  const handleSaveEdit = () => {
+    if (!editState || editingFilterId === null) return;
+
+    if (editState.startTime >= editState.endTime) {
+      alert('Start time must be before end time.');
+      return;
+    }
+
+    setFilterTimeline((prev) =>
+      prev.map((f) =>
+        f.id === editingFilterId
+          ? {
+              ...f, // Preserves original filterId
+              label: editState.label,
+              startTime: editState.startTime,
+              endTime: editState.endTime,
+            }
+          : f
+      )
+    );
+
+    setEditingFilterId(null);
+    setEditState(null);
+  };
+
+  const handleDeleteFilter = (id: number) => {
+    if (window.confirm('Are you sure you want to delete this filter?')) {
+      setFilterTimeline((prev) => prev.filter((f) => f.id !== id));
+      if (editingFilterId === id) {
+        setEditingFilterId(null);
+      }
+    }
+  };
+
+
+  //useEffect(() => {
+  //  // Update end time when video duration changes
+  //  setEndTime(videoDuration);
+  //}, [videoDuration]);
+  //
+  //console.log('videoDuration changed: ', videoDuration);
+
+  //const handleAddFilter = () => {
+  //  console.log('ADDING FILTER: ', selectedFilterId, startTime, endTime);
+  //  if (selectedFilterId && startTime >= 0 && endTime <= videoDuration && startTime < endTime) {
+  //    const newFilterEntry: FilterTimelineEntry = {
+  //      id: Date.now(), // Unique ID for the entry
+  //      filterId: selectedFilterId,
+  //      startTime: parseFloat(startTime.toString()), // Ensure number type
+  //      endTime: parseFloat(endTime.toString()),     // Ensure number type
+  //    };
+  //    setFilterTimeline((prev) => [...prev, newFilterEntry]);
+  //    // Reset form
+  //    setSelectedFilterId('');
+  //    setStartTime(0);
+  //    setEndTime(videoDuration);
+  //  } else {
+  //    // TODO: replace with a custom modal notification
+  //    console.error('Please select a filter and ensure valid start/end times.');
+  //  }
+  //};
+  //
+  //const handleDeleteFilter = (id: number) => {
+  //  setFilterTimeline((prev) => prev.filter((f) => f.id !== id));
+  //};
+
+  return (
+    <div className="w-full mt-6 p-4 bg-gray-800 rounded-lg flex flex-col gap-4 shadow-xl">
+      {/* Play/Pause & Time Display */}
+      <div className="flex items-center justify-between text-gray-300">
+        <button
+          onClick={handlePlayPause}
+          className="p-2 rounded-full bg-purple-600 hover:bg-purple-700 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
+          aria-label={isPlaying ? 'Pause' : 'Play'}
+        >
+          {isPlaying ? (
+            <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          ) : (
+            <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          )}
+        </button>
+        <div className="text-lg font-mono tracking-wider">
+          <span>{formatTime(currentTime)}</span> / <span>{formatTime(videoDuration)}</span>
         </div>
       </div>
 
-      <div>
-        <h3 className="text-lg font-medium text-white mb-2">Applied Filters</h3>
-        {filterTimeline.length === 0 ? (
-          <p className="text-gray-400">No filters applied yet.</p>
-        ) : (
-          <ul className="space-y-2">
-            {filterTimeline.map((entry) => (
-              <li
-                key={entry.id}
-                className={`flex justify-between items-center p-3 rounded-md border ${
-                  currentTime >= entry.startTime && currentTime <= entry.endTime
-                    ? 'border-green-500 bg-green-900 bg-opacity-20'
-                    : 'border-gray-700 bg-gray-700'
-                }`}
-              >
-                <span className="text-white">
-                  {availableFilters.find(f => f.id === entry.filterId)?.name || 'Unknown Filter'}
-                  : {entry.startTime.toFixed(1)}s - {entry.endTime.toFixed(1)}s
-                </span>
-                <button
-                  onClick={() => handleDeleteFilter(entry.id)}
-                  className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-300 ease-in-out text-sm"
+      {/* Timeline Scrubber */}
+      <input
+        type="range"
+        min="0"
+        max={videoDuration}
+        value={currentTime}
+        onChange={(e) => handleScrub(parseFloat(e.target.value))}
+        className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer range-thumb"
+        aria-label="Video scrubber"
+        disabled={videoDuration === 0}
+      />
+
+      {/* Filter Visualization Bar */}
+      <div className="relative w-full h-8 bg-gray-700 rounded-md overflow-hidden my-2 border border-gray-900">
+        {filterTimeline.map((filter) => {
+            const filterInfo = availableFilters.find(f => f.id === filter.filterId);
+            return (
+                <div
+                    key={filter.id}
+                    className="absolute h-full opacity-80 group cursor-pointer flex items-center justify-center text-xs font-bold text-white overflow-hidden"
+                    style={{
+                        left: `${(filter.startTime / videoDuration) * 100}%`,
+                        width: `${((filter.endTime - filter.startTime) / videoDuration) * 100}%`,
+                        backgroundColor: filterInfo?.color || '#3B82F6',
+                    }}
+                    title={`${filter.label}: ${formatTime(filter.startTime)} - ${formatTime(filter.endTime)}`}
+                    onClick={() => handleStartEditing(filter)}
                 >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+                    <span className="truncate px-2">{filter.label}</span>
+                </div>
+            )
+        })}
+        <div
+          className="absolute top-0 bottom-0 w-1 bg-purple-400 z-10 pointer-events-none"
+          style={{ left: `${(currentTime / videoDuration) * 100}%` }}
+        />
       </div>
+
+      {/* --- Add New Filter UI --- */}
+      {!isAddingFilter ? (
+        <button
+          onClick={handleStartAddNewFilter}
+          className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-semibold transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed"
+          disabled={videoDuration === 0}
+        >
+          + Add New Filter Slice
+        </button>
+      ) : (
+        <div className="p-4 bg-gray-900 rounded-lg shadow-inner flex flex-col gap-4 border border-gray-700">
+          <h3 className="text-xl font-bold text-purple-300">Define New Filter</h3>
+          
+          {/* Lens/Filter Carousel */}
+          <div className="flex flex-col gap-2 p-3 bg-gray-800 rounded-lg border border-gray-600">
+            <label className="text-gray-300 font-medium text-lg">Select a Lens</label>
+             {availableFilters.length > 0 ? (
+                <div className="custom-scrollbar flex overflow-x-auto gap-4 py-2 px-1">
+                    {availableFilters.map((lens) => (
+                        <button
+                            key={lens.id}
+                            onClick={() => setSelectedLensId(lens.id)}
+                            className={`flex-shrink-0 w-28 h-28 rounded-xl flex flex-col items-center justify-center text-center text-sm font-medium border-2 transition-all duration-200 relative overflow-hidden shadow-md ${selectedLensId === lens.id ? 'border-purple-400 ring-2 ring-purple-400' : 'border-gray-600 hover:border-purple-300'}`}
+                            style={{ backgroundColor: lens.color || '#3B82F6' }}
+                        >
+                           {lens.iconUrl ? (
+                              <>
+                                <img src={lens.iconUrl} alt={lens.name} className="absolute inset-0 w-full h-full object-cover" />
+                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/60 to-transparent p-2 text-white font-semibold text-xs">{lens.name}</div>
+                              </>
+                           ) : (
+                              <span className="text-white font-semibold px-1">{lens.name}</span>
+                           )}
+                           {selectedLensId === lens.id && (
+                             <div className="absolute inset-0 bg-purple-500/70 flex items-center justify-center pointer-events-none">
+                               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                             </div>
+                           )}
+                        </button>
+                    ))}
+                </div>
+            ) : <p className="text-gray-400">No filters available.</p>}
+          </div>
+
+          {/* Time & Label Inputs */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+             <div className="flex flex-col gap-1 col-span-full">
+                <label htmlFor="new-filter-label" className="text-gray-300 text-sm">Label:</label>
+                <input
+                    type="text"
+                    id="new-filter-label"
+                    value={newFilterLabel}
+                    onChange={(e) => setNewFilterLabel(e.target.value)}
+                    className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
+                />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="new-start-time" className="text-gray-300 text-sm">Start Time (s):</label>
+              <div className="flex gap-2">
+                 <input
+                    type="number"
+                    id="new-start-time"
+                    value={newFilterStartTime}
+                    onChange={(e) => setNewFilterStartTime(parseFloat(e.target.value))}
+                    className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
+                    step="0.1" min="0" max={videoDuration}
+                />
+                <button onClick={() => setNewFilterStartTime(currentTime)} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="new-end-time" className="text-gray-300 text-sm">End Time (s):</label>
+               <div className="flex gap-2">
+                <input
+                    type="number"
+                    id="new-end-time"
+                    value={newFilterEndTime}
+                    onChange={(e) => setNewFilterEndTime(parseFloat(e.target.value))}
+                    className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
+                    step="0.1" min="0" max={videoDuration}
+                />
+                <button onClick={() => setNewFilterEndTime(currentTime)} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 mt-3">
+            <button onClick={() => setIsAddingFilter(false)} className="py-2 px-4 bg-gray-600 hover:bg-gray-700 rounded-lg text-white font-semibold">Cancel</button>
+            <button onClick={handleSaveNewFilter} className="py-2 px-4 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold">Save Filter</button>
+          </div>
+        </div>
+      )}
+
+      {/* --- Manage Existing Filters UI --- */}
+      {filterTimeline.length > 0 && (
+        <div className="w-full mt-4">
+          <button onClick={() => setShowManageFilters(!showManageFilters)} className="w-full p-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-semibold flex justify-between items-center">
+            <span>Manage Applied Filters ({filterTimeline.length})</span>
+            <span className="transition-transform" style={{ transform: showManageFilters ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+          </button>
+
+          {showManageFilters && (
+            <div className="bg-gray-900/50 p-2 rounded-lg mt-2 space-y-3">
+              {filterTimeline.map((filter) => (
+                <div key={filter.id} className="bg-gray-800 p-3 rounded-lg shadow-md border border-gray-700">
+                  {editingFilterId === filter.id && editState ? (
+                    // -- EDITING VIEW --
+                    <div className="flex flex-col gap-4">
+                        <input
+                            type="text"
+                            value={editState.label}
+                            onChange={(e) => setEditState({...editState, label: e.target.value})}
+                            className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white text-lg font-semibold"
+                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                            <div className="flex flex-col gap-1">
+                                <label className="text-gray-400 text-xs">Start (s)</label>
+                                <div className="flex gap-2">
+                                    <input type="number" value={editState.startTime} onChange={(e) => setEditState({...editState, startTime: parseFloat(e.target.value)})} className="p-2 rounded-md bg-gray-700 text-white w-full" step="0.1"/>
+                                    <button onClick={() => setEditState({...editState, startTime: currentTime})} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label className="text-gray-400 text-xs">End (s)</label>
+                                <div className="flex gap-2">
+                                    <input type="number" value={editState.endTime} onChange={(e) => setEditState({...editState, endTime: parseFloat(e.target.value)})} className="p-2 rounded-md bg-gray-700 text-white w-full" step="0.1"/>
+                                    <button onClick={() => setEditState({...editState, endTime: currentTime})} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <button onClick={() => setEditingFilterId(null)} className="px-3 py-1 bg-gray-600 rounded-md text-sm">Cancel</button>
+                            <button onClick={handleSaveEdit} className="px-3 py-1 bg-green-600 rounded-md text-sm">Save</button>
+                        </div>
+                    </div>
+                  ) : (
+                    // -- DEFAULT VIEW --
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="font-bold text-white">{filter.label}</span>
+                        <span className="text-gray-400 text-sm ml-3">
+                            ({availableFilters.find(f => f.id === filter.filterId)?.name || 'Unknown'})
+                        </span>
+                        <p className="text-purple-300 font-mono text-sm">{filter.startTime.toFixed(1)}s - {filter.endTime.toFixed(1)}s</p>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0 ml-4">
+                        <button onClick={() => handleStartEditing(filter)} className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">Edit</button>
+                        <button onClick={() => handleDeleteFilter(filter.id)} className="px-3 py-1 bg-red-600 text-white rounded-md text-sm hover:bg-red-700">Delete</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
-
 export default TimelineControls;
