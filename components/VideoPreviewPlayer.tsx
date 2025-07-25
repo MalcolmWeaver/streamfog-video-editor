@@ -201,6 +201,15 @@ const VideoPreviewPlayer: React.FC = () => {
     videoElement.currentTime = newTime;
     setCurrentTime(newTime);
   };
+  const handleScrub = (newTime: number) => {
+    const videoElement = videoRef.current;
+    // Clamp the time to be within the video's duration
+    const time = Math.max(0, Math.min(newTime, videoDuration));
+    if (videoElement && isFinite(time)) {
+      videoElement.currentTime = time;
+      setCurrentTime(time);
+    }
+  };
 
   return (
     <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
@@ -235,24 +244,36 @@ const VideoPreviewPlayer: React.FC = () => {
       </div>
 
       {videoURL ? (
-        <div className="space-y-4">
-          {/* Play/Pause Controls */}
-          <div className="flex items-center justify-center">
-            <button
-              onClick={handlePlayPause}
-              className="flex items-center justify-center w-12 h-12 bg-purple-600 hover:bg-purple-700 rounded-full transition-colors duration-200"
-            >
-              {isPlaying ? (
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-                </svg>
-              ) : (
-                <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z"/>
-                </svg>
-              )}
-            </button>
-          </div>
+          <div className="w-full mt-6 p-4 bg-gray-800 rounded-lg flex flex-col gap-4 shadow-xl">
+              {/* Play/Pause & Time Display */}
+              <div className="flex items-center justify-between text-gray-300">
+                <button
+                  onClick={handlePlayPause}
+                  className="p-2 rounded-full bg-purple-600 hover:bg-purple-700 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
+                  aria-label={isPlaying ? 'Pause' : 'Play'}
+                >
+                  {isPlaying ? (
+                    <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                  ) : (
+                    <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  )}
+                </button>
+                <div className="text-lg font-mono tracking-wider">
+                  <span>{(currentTime)}</span> / <span>{(videoDuration)}</span>
+                </div>
+              </div>
+
+              {/* Timeline Scrubber */}
+              <input
+                type="range"
+                min="0"
+                max={videoDuration}
+                value={currentTime}
+                onChange={(e) => handleScrub(parseFloat(e.target.value))}
+                className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer range-thumb"
+                aria-label="Video scrubber"
+                disabled={videoDuration === 0}
+              />
 
           {/* Time Display */}
           <div className="text-center">
@@ -262,15 +283,6 @@ const VideoPreviewPlayer: React.FC = () => {
           </div>
 
           {/* Progress Bar */}
-          <div 
-            className="w-full h-2 bg-gray-700 rounded-full cursor-pointer overflow-hidden"
-            onClick={handleSeek}
-          >
-            <div 
-              className="h-full bg-purple-500 transition-all duration-100 ease-linear"
-              style={{ width: `${videoDuration > 0 ? (currentTime / videoDuration) * 100 : 0}%` }}
-            />
-          </div>
         </div>
       ) : (
         <div className="text-center p-6 bg-gray-700 rounded-lg">
