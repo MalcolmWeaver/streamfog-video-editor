@@ -25,11 +25,7 @@ const VideoPreviewPlayer: React.FC = () => {
     setFilterTimeline,
     currentTime,
     setCurrentTime,
-    isPlaying,
     setIsPlaying,
-    videoDuration,
-    handleScrub,
-    handlePlayPause
   } = useVideoEditor();
 
   const cameraKitSessionRef = useRef<CameraKitSession | null>(null);
@@ -249,43 +245,7 @@ const VideoPreviewPlayer: React.FC = () => {
       </div>
 
       {videoURL ? (
-        <div className="space-y-4">
-          {/* Play/Pause Controls */}
-          <div className="flex items-center justify-center">
-            <button
-              onClick={handlePlayPause}
-              className="flex items-center justify-center w-12 h-12 bg-purple-600 hover:bg-purple-700 rounded-full transition-colors duration-200"
-            >
-              {isPlaying ? (
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
-                </svg>
-              ) : (
-                <svg className="w-6 h-6 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z"/>
-                </svg>
-              )}
-            </button>
-          </div>
-
-          {/* Time Display */}
-          <div className="text-center">
-            <span className="text-white text-sm font-medium">
-              {Math.floor(currentTime / 60)}:{(currentTime % 60).toFixed(0).padStart(2, '0')} / {Math.floor(videoDuration / 60)}:{(videoDuration % 60).toFixed(0).padStart(2, '0')}
-            </span>
-          </div>
-
-          {/* Progress Bar */}
-          <div 
-            className="w-full h-2 bg-gray-700 rounded-full cursor-pointer overflow-hidden"
-            onClick={handleScrub}
-          >
-            <div 
-              className="h-full bg-purple-500 transition-all duration-100 ease-linear"
-              style={{ width: `${videoDuration > 0 ? (currentTime / videoDuration) * 100 : 0}%` }}
-            />
-          </div>
-        </div>
+        null
       ) : (
         <div className="text-center p-6 bg-gray-700 rounded-lg">
           <p className="text-gray-400">Upload a video to enable controls</p>
