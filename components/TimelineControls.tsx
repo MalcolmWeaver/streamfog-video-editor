@@ -5,9 +5,6 @@ import { FilterTimelineEntry } from '../types';
 
 const TimelineControls: React.FC = () => {
   const { 
-      handleScrub,
-      handlePlayPause,
-      isPlaying,
       availableFilters, 
       filterTimeline, 
       setFilterTimeline, 
@@ -15,10 +12,6 @@ const TimelineControls: React.FC = () => {
       currentTime 
   } = useVideoEditor();
   
-  //const [selectedFilterId, setSelectedFilterId] = useState<string>('');
-  //const [startTime, setStartTime] = useState<number>(0);
-  //const [endTime, setEndTime] = useState<number>(0);
-
   // -- Local UI State
   const [isAddingFilter, setIsAddingFilter] = useState<boolean>(false);
   const [showManageFilters, setShowManageFilters] = useState<boolean>(false);
@@ -82,11 +75,7 @@ const TimelineControls: React.FC = () => {
 
   const handleStartEditing = (filter: FilterTimelineEntry) => {
     setEditingFilterId(filter.id);
-    setEditState({
-        label: filter.label,
-        startTime: filter.startTime,
-        endTime: filter.endTime
-    });
+    setEditState(filter);
   };
 
   const handleSaveEdit = () => {
@@ -157,36 +146,6 @@ const TimelineControls: React.FC = () => {
 
   return (
     <div className="w-full mt-6 p-4 bg-gray-800 rounded-lg flex flex-col gap-4 shadow-xl">
-      {/* Play/Pause & Time Display */}
-      <div className="flex items-center justify-between text-gray-300">
-        <button
-          onClick={handlePlayPause}
-          className="p-2 rounded-full bg-purple-600 hover:bg-purple-700 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
-          aria-label={isPlaying ? 'Pause' : 'Play'}
-        >
-          {isPlaying ? (
-            <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-          ) : (
-            <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-          )}
-        </button>
-        <div className="text-lg font-mono tracking-wider">
-          <span>{formatTime(currentTime)}</span> / <span>{formatTime(videoDuration)}</span>
-        </div>
-      </div>
-
-      {/* Timeline Scrubber */}
-      <input
-        type="range"
-        min="0"
-        max={videoDuration}
-        value={currentTime}
-        onChange={(e) => handleScrub(parseFloat(e.target.value))}
-        className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer range-thumb"
-        aria-label="Video scrubber"
-        disabled={videoDuration === 0}
-      />
-
       {/* Filter Visualization Bar */}
       <div className="relative w-full h-8 bg-gray-700 rounded-md overflow-hidden my-2 border border-gray-900">
         {filterTimeline.map((filter) => {
