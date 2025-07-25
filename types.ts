@@ -1,6 +1,8 @@
 import type { CameraKitSession, Lens } from '@snap/camera-kit';
 
-export interface Filter extends Lens {}
+export interface Filter extends Lens {
+    color: string;
+}
 
 export interface FilterTimelineEntry {
   label?: string;

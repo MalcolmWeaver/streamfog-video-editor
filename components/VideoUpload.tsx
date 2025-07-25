@@ -3,7 +3,7 @@ import React, { useRef } from 'react';
 import { useVideoEditor } from '../context/VideoEditorContext';
 
 const VideoUpload: React.FC = () => {
-  const { videoFile, setVideoFile, setVideoURL, setVideoDuration } = useVideoEditor();
+  const { videoFile, setIsPlaying, setVideoFile, setVideoURL, setVideoDuration } = useVideoEditor();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -13,11 +13,13 @@ const VideoUpload: React.FC = () => {
       const url = URL.createObjectURL(file);
       setVideoURL(url);
       setVideoDuration(0);
+      setIsPlaying(false);
     } else {
       console.error('Please select a valid video file.');
       setVideoFile(null);
       setVideoURL('');
       setVideoDuration(0);
+      setIsPlaying(false);
     }
   };
 

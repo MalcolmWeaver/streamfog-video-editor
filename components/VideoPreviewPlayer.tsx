@@ -7,6 +7,7 @@ import {
   bootstrapCameraKit,
   CameraKitSession,
 } from '@snap/camera-kit';
+import { pascalDarkColors } from '@/theme';
 
 const STAGING_API_TOKEN = 'eyJhbGciOiJIUzI1NiIsImtpZCI6IkNhbnZhc1MyU0hNQUNQcm9kIiwidHlwIjoiSldUIn0.eyJhdWQiOiJjYW52YXMtY2FudmFzYXBpIiwiaXNzIjoiY2FudmFzLXMyc3Rva2VuIiwibmJmIjoxNzUzMjkzNDYyLCJzdWIiOiJkMjM3MmY5Mi1lZjlkLTRkNWMtYjU0My1lNDFhOGMwOWFlMjR-U1RBR0lOR344ZjE1ODFjZC1iYjY5LTQ3YjYtYjZmMC1mOTA3MjZlNGY2YTMifQ.P7N7-fANJmuAFahYxNImNwsdIDS2aciyECed-74pIxM';
 const LENS_GROUP_ID = '868e355a-1370-4232-a645-603b66cc4869';
@@ -58,7 +59,7 @@ const VideoPreviewPlayer: React.FC = () => {
         videoElement.removeEventListener('timeupdate', handleTimeUpdate);
       };
     }
-  }, [setVideoDuration, setCurrentTime]);
+  }, [videoURL]);
 
   // Camera Kit initialization and cleanup
   useEffect(() => {
@@ -116,7 +117,13 @@ const VideoPreviewPlayer: React.FC = () => {
         const { lenses, errors} = await cameraKit.lensRepository.loadLensGroups([LENS_GROUP_ID]);
         console.warn('Loading lenses errors: ', errors);
         
-        setAvailableFilters(lenses);
+        const lensesWithColor: Filter[] = lenses.map((lens: Lens) => ({
+          ...lens,
+          color: pascalDarkColors[
+            Math.floor(Math.random() * pascalDarkColors.length)
+          ],
+        }));
+        setAvailableFilters(lensesWithColor);
 
         try {
           await session.play();
@@ -190,17 +197,6 @@ const VideoPreviewPlayer: React.FC = () => {
     }
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    const videoElement = videoRef.current;
-    if (!videoElement || videoDuration === 0) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const newTime = (clickX / rect.width) * videoDuration;
-    
-    videoElement.currentTime = newTime;
-    setCurrentTime(newTime);
-  };
   const handleScrub = (newTime: number) => {
     const videoElement = videoRef.current;
     // Clamp the time to be within the video's duration
@@ -258,9 +254,6 @@ const VideoPreviewPlayer: React.FC = () => {
                     <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                   )}
                 </button>
-                <div className="text-lg font-mono tracking-wider">
-                  <span>{(currentTime)}</span> / <span>{(videoDuration)}</span>
-                </div>
               </div>
 
               {/* Timeline Scrubber */}
