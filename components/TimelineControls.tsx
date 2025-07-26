@@ -94,6 +94,8 @@ const TimelineControls: React.FC = () => {
     const handleStartEditing = (filter: FilterTimelineEntry) => {
         setEditingFilterId(filter.id);
         setEditState(filter);
+        setRawStart(`${filter.startTime}`);
+        setRawEnd(`${filter.endTime}`);
     };
 
     const handleDeleteFilter = (id: number) => {
@@ -327,7 +329,6 @@ const TimelineControls: React.FC = () => {
                                         setNewFilterStartTime(v);
                                         setRawStart(v.toFixed(2)); // show the clamped number
                                       }}
-                                      placeholder="0.00"
                                       className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
                                     />
                                     <button onClick={() => setEditState({...editState, startTime: currentTime})} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
@@ -338,16 +339,16 @@ const TimelineControls: React.FC = () => {
                                 <div className="flex gap-2">
                                     <input
                                       type="number"
-                                      value={rawStart}
-                                      onChange={(e) => setRawStart(e.target.value)}
+                                      value={rawEnd}
+                                      onChange={(e) => setRawEnd(e.target.value)}
                                       onBlur={() => {
-                                        let v = parseFloat(rawStart);
+                                        let v = parseFloat(rawEnd);
                                         if (isNaN(v)) v = 0;
                                         v = Math.max(0, Math.min(videoDuration, v));
-                                        setNewFilterStartTime(v);
-                                        setRawStart(v.toFixed(2)); // show the clamped number
+                                        setNewFilterEndTime(v);
+                                        setRawEnd(v.toFixed(2)); // show the clamped number
                                       }}
-                                      placeholder="0.00"
+                                      className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
                                     />
 
                                     <button onClick={() => setEditState({...editState, endTime: currentTime})} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
