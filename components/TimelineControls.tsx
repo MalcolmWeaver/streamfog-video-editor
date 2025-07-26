@@ -61,6 +61,7 @@ const TimelineControls: React.FC = () => {
 
 
     const handleStartAddNewFilter = () => {
+        setShowManageFilters(false);
         setRawEnd('0.00');
         setRawStart('0.00');
         setIsAddingFilter(true);
@@ -276,7 +277,12 @@ const TimelineControls: React.FC = () => {
       {/* --- Manage Existing Filters UI --- */}
       {filterTimeline.length > 0 && (
         <div className="w-full mt-4">
-          <button onClick={() => setShowManageFilters(!showManageFilters)} className="w-full p-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-semibold flex justify-between items-center">
+          <button 
+            onClick={() => { 
+                setIsAddingFilter(false);
+                setShowManageFilters(!showManageFilters);
+            }} 
+            className="w-full p-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-semibold flex justify-between items-center">
             <span>Manage Applied Filters ({filterTimeline.length})</span>
             <span className="transition-transform" style={{ transform: showManageFilters ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
           </button>

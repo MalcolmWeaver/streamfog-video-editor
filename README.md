@@ -71,10 +71,6 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 https://github.com/user-attachments/assets/cc9b8f92-717a-4700-8f72-7677935ef0a4
 
-### 📸 Output Result
-
-https://github.com/user-attachments/assets/66e19080-130f-470d-b803-8918795ac77f
-
 ---
 
 
