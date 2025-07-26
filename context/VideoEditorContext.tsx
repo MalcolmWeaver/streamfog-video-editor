@@ -4,7 +4,6 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { VideoEditorContextType, Filter, FilterTimelineEntry } from '../types';
 import type { CameraKitSession } from '@snap/camera-kit';
 
-// Create the context with a default undefined value, to be set by the Provider
 const VideoEditorContext = createContext<VideoEditorContextType | undefined>(undefined);
 
 export const VideoEditorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -20,7 +19,6 @@ export const VideoEditorProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   
 
-  // Effect to clean up video URL when component unmounts or video changes
   useEffect(() => {
     return () => {
       if (videoURL) {
@@ -29,7 +27,6 @@ export const VideoEditorProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
   }, [videoURL]);
 
-  // The value object that will be provided to consumers
   const value: VideoEditorContextType = {
     videoFile,
     setVideoFile,
