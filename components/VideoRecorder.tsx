@@ -32,6 +32,7 @@ const VideoRecorder: React.FC = () => {
     };
 
     const startRecording = () => {
+        console.log('STARTED RECORDING', canvasRef, videoRef, canvasRef.current, videoRef.current);
         cancelledRef.current = false;
         if (!canvasRef || !('current' in canvasRef) || !videoRef || !('current' in videoRef) || !videoRef.current || !canvasRef.current) return;
         const videoEl = videoRef.current;
@@ -44,6 +45,7 @@ const VideoRecorder: React.FC = () => {
         // Build combined stream
         const canvasStream = canvasRef.current.captureStream(60);
         const audioTracks  = videoEl.captureStream().getAudioTracks();
+        console.log('AUDIO TRACKS: ', JSON.stringify(audioTracks));
         audioTracks.forEach((t) => canvasStream.addTrack(t));
 
         // Pick MIME (MP4 if supported, else WebM)
@@ -88,6 +90,7 @@ const VideoRecorder: React.FC = () => {
             // whether cancelled or finished, clean up
             teardown();// download file
         };
+        console.log('ABOUT TO START RECORDING');
 
         recorderRef.current = rec;
         rec.start();
@@ -125,7 +128,7 @@ const VideoRecorder: React.FC = () => {
         <div className="p-4 bg-gray-800 rounded-lg shadow-md flex flex-col items-center">
         <h2 className="text-xl font-semibold text-white mb-4">Record Output   Audio</h2>
         <p className="text-gray-400 text-center mb-4">
-        Click “Record” to replay from the start (muted), record both canvas & audio, 
+        Click “Export” to replay from the start (muted), record both canvas & audio, 
         and auto‑stop when it ends.
             </p>
         <button
@@ -137,7 +140,7 @@ const VideoRecorder: React.FC = () => {
                 : 'bg-red-600 text-white hover:bg-red-700'
             }`}
             >
-            {recording ? 'Recording…' : 'Record'}
+            {recording ? 'Recording…' : 'Export'}
             </button>
             </div>
             </>

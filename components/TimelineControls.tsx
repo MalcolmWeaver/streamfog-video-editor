@@ -326,7 +326,8 @@ const TimelineControls: React.FC = () => {
                                         let v = parseFloat(rawStart);
                                         if (isNaN(v)) v = 0;
                                         v = Math.max(0, Math.min(videoDuration, v));
-                                        setNewFilterStartTime(v);
+                                        const existingState = editState;
+                                        setEditState({...existingState, startTime: v});
                                         setRawStart(v.toFixed(2)); // show the clamped number
                                       }}
                                       className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
@@ -345,7 +346,8 @@ const TimelineControls: React.FC = () => {
                                         let v = parseFloat(rawEnd);
                                         if (isNaN(v)) v = 0;
                                         v = Math.max(0, Math.min(videoDuration, v));
-                                        setNewFilterEndTime(v);
+                                        const existingState = editState;
+                                        setEditState({...existingState, startTime: v});
                                         setRawEnd(v.toFixed(2)); // show the clamped number
                                       }}
                                       className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"

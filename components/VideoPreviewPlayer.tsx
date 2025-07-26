@@ -1,213 +1,199 @@
 'use client';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useVideoEditor } from '../context/VideoEditorContext';
 import { Filter } from '../types';
 
 import {
-  bootstrapCameraKit,
-  CameraKitSession,
+    bootstrapCameraKit,
+    CameraKitSession,
+    Lens,
 } from '@snap/camera-kit';
 import { pascalDarkColors } from '@/theme';
 
-const STAGING_API_TOKEN = 'eyJhbGciOiJIUzI1NiIsImtpZCI6IkNhbnZhc1MyU0hNQUNQcm9kIiwidHlwIjoiSldUIn0.eyJhdWQiOiJjYW52YXMtY2FudmFzYXBpIiwiaXNzIjoiY2FudmFzLXMyc3Rva2VuIiwibmJmIjoxNzUzMjkzNDYyLCJzdWIiOiJkMjM3MmY5Mi1lZjlkLTRkNWMtYjU0My1lNDFhOGMwOWFlMjR-U1RBR0lOR344ZjE1ODFjZC1iYjY5LTQ3YjYtYjZmMC1mOTA3MjZlNGY2YTMifQ.P7N7-fANJmuAFahYxNImNwsdIDS2aciyECed-74pIxM';
+const STAGING_API_TOKEN = 'eyJhbGciOiJIUzI1NiIsImtpZCI6IkNhbnZhc1MyU0hNQUNQcm9kIiwidHlwIjoiSldUIn0.eyJhdWQiOiJjYW52YXMtY2FudmFzYXBpIiwiaXNzIjoiY2FudmFzLXMyc3Rva2VuIiwibmJmIjoxNzUzNTI3OTM0LCJzdWIiOiJkMjM3MmY5Mi1lZjlkLTRkNWMtYjU0My1lNDFhOGMwOWFlMjR-U1RBR0lOR34zMTFjZWUyYi05OTkzLTQ0YjYtOWQ4YS0yMDg5YjYzOTMwMWEifQ.K25a9J7rT8tbUQAHL45fvtf8aBLCb3CZPFymOxdrlYQ';
 const LENS_GROUP_ID = '868e355a-1370-4232-a645-603b66cc4869';
 
 const VideoPreviewPlayer: React.FC = () => {
-  const {
-    videoURL,
-    setVideoDuration,
-    setCameraKitSession,
-    availableFilters,
-    setAvailableFilters,
-    filterTimeline,
-    currentTime,
-    setCurrentTime,
-    isPlaying,
-    setIsPlaying,
-    videoDuration,
-  } = useVideoEditor();
+    const {
+        videoURL,
+        setVideoDuration,
+        setCameraKitSession,
+        availableFilters,
+        setAvailableFilters,
+        filterTimeline,
+        currentTime,
+        setCurrentTime,
+        isPlaying,
+        setIsPlaying,
+        videoDuration,
+        videoRef,
+        canvasRef
+    } = useVideoEditor();
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const cameraKitSessionRef = useRef<CameraKitSession | null>(null);
+    //const videoRef = useRef<HTMLVideoElement>(null);
+    //const canvasRef = useRef<HTMLCanvasElement>(null);
+    const cameraKitSessionRef = useRef<CameraKitSession | null>(null);
 
-  // Video Metadata Loading and Time Updates
-  useEffect(() => {
-    const videoElement = videoRef.current;
-    
-    if (videoElement) {
-      const handleLoadedMetadata = () => {
-        setVideoDuration(videoElement.duration);
-        const canvas = canvasRef.current;
-        if (canvas && videoElement.videoWidth && videoElement.videoHeight) {
-          // Ensure canvas matches video dimensions exactly
-          canvas.width = videoElement.videoWidth;
-          canvas.height = videoElement.videoHeight;
-          console.log('Video metadata loaded - Canvas sized to:', canvas.width, 'x', canvas.height);
+    // Video Metadata Loading and Time Updates
+    useEffect(() => {
+        if (!canvasRef || !('current' in canvasRef) || !videoRef || !('current' in videoRef) || !videoRef.current || !canvasRef.current) return;
+        const videoElement = videoRef.current;
+
+        if (videoElement) {
+            const handleLoadedMetadata = () => {
+                setVideoDuration(videoElement.duration);
+                const canvas = canvasRef.current;
+                canvas.addEventListener("webglcontextlost", (e) => {
+                    e.preventDefault();
+                    console.error("[WebGL] context lost!");
+                    // you may need to recreate your session here
+                });
+
+                canvas.addEventListener("webglcontextrestored", () => {
+                    console.info("[WebGL] context restored — re-init session");
+                    initializeCameraKit();  // or your wrapper
+                });
+
+            };
+
+            const handleTimeUpdate = () => {
+                setCurrentTime(videoElement.currentTime);
+            };
+
+            videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+            videoElement.addEventListener('timeupdate', handleTimeUpdate);
+
+            return () => {
+                videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+                videoElement.removeEventListener('timeupdate', handleTimeUpdate);
+            };
         }
-      };
+    }, [videoURL]);
 
-      const handleTimeUpdate = () => {
-        setCurrentTime(videoElement.currentTime);
-      };
+    // state to hold when metadata is ready:
+    const [metaReady, setMetaReady] = useState(false);
 
-      videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
-      videoElement.addEventListener('timeupdate', handleTimeUpdate);
+    useEffect(() => {
+        if (!canvasRef || !('current' in canvasRef) || !videoRef || !('current' in videoRef) || !videoRef.current || !canvasRef.current) return;
+        const videoEl = videoRef.current;
+        if (!videoURL || !videoEl) return;
 
-      return () => {
-        videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        videoElement.removeEventListener('timeupdate', handleTimeUpdate);
-      };
-    }
-  }, [videoURL]);
+        // if already loaded, fire immediately
+        if (videoEl.readyState >= 2) {
+            setMetaReady(true);
+            return;
+        }
+        // otherwise wait
+        const onMeta = () => setMetaReady(true);
+        videoEl.addEventListener("loadedmetadata", onMeta);
+        return () => videoEl.removeEventListener("loadedmetadata", onMeta);
+    }, [videoURL]);
 
-  // Camera Kit initialization and cleanup
-  useEffect(() => {
-    const videoElement = videoRef.current;
-    const canvasElement = canvasRef.current;
+    // Camera Kit initialization and cleanup
+    useEffect(() => {
+        if (!canvasRef || !('current' in canvasRef) || !videoRef || !('current' in videoRef) || !videoRef.current || !canvasRef.current) return;
 
-    const initializeCameraKit = async () => {
-      if (cameraKitSessionRef.current) {
-        cameraKitSessionRef.current.destroy();
+        const videoEl  = videoRef.current!;
+        const canvasEl = canvasRef.current!;
+        const session  = cameraKitSessionRef.current;
+
+        // Fast‑path: reuse if dimensions match
+        if (
+            session &&
+            videoEl.videoWidth  === canvasEl.width &&
+        videoEl.videoHeight === canvasEl.height
+        ) {
+            session.setSource(videoEl);
+            return;
+        }
+
+        // Slow‑path: full teardown & rebuild
+        session?.destroy();
         cameraKitSessionRef.current = null;
         setCameraKitSession(null);
         setAvailableFilters([]);
-      }
 
-      if (!videoURL || !videoElement || !canvasElement) {
-        return;
-      }
+        // Size before hijack
+        canvasEl.width  = videoEl.videoWidth;
+        canvasEl.height = videoEl.videoHeight;
 
-      if (videoElement.readyState < 2) {
-        const waitForReady = () => {
-          if (videoElement.readyState >= 2) {
-            initializeCameraKit();
-          } else {
-            setTimeout(waitForReady, 100);
-          }
-        };
-        waitForReady();
-        return;
-      }
+        (async () => {
+            const kit     = await bootstrapCameraKit({ apiToken: STAGING_API_TOKEN });
+            const newSess = await kit.createSession({ liveRenderTarget: canvasEl, useWorker: true });
+            cameraKitSessionRef.current = newSess;
+            setCameraKitSession(newSess);
+            newSess.setSource(videoEl);
 
-      try {
-        const cameraKit = await bootstrapCameraKit({
-          apiToken: STAGING_API_TOKEN,
-        });
+            const { lenses } = await kit.lensRepository.loadLensGroups([LENS_GROUP_ID]);
 
-        if (videoElement.videoWidth && videoElement.videoHeight) {
-          // Set canvas to exact video dimensions
-          canvasElement.width = videoElement.videoWidth;
-          canvasElement.height = videoElement.videoHeight;
-          console.log('Canvas dimensions set to:', canvasElement.width, 'x', canvasElement.height);
-        } else {
-          // Fallback dimensions
-          canvasElement.width = 640;
-          canvasElement.height = 480;
+            const lensesWithColor: Filter[] = lenses.map((lens: Lens) => ({
+                ...lens,
+                color: pascalDarkColors[
+                    Math.floor(Math.random() * pascalDarkColors.length)
+                ],
+            }));
+            setAvailableFilters(lensesWithColor);
+
+            await newSess.play();
+        })().catch(console.error);
+
+    }, [videoURL, metaReady]);
+
+
+    // Apply Filters Based on Timeline and Current Time
+    useEffect(() => {
+        const session = cameraKitSessionRef.current;
+
+        if (session && availableFilters.length > 0) {
+            const activeFilterEntry = filterTimeline.find(
+                (f) => currentTime >= f.startTime && currentTime <= f.endTime
+            );
+
+            session.removeLens();
+
+            if (activeFilterEntry) {
+                const activeLens = availableFilters.find(
+                    (availableFilter: Filter) => availableFilter.id === activeFilterEntry.filterId
+                );
+
+                if (activeLens) {
+                    try {
+                        session.applyLens(activeLens);
+                        console.log(`[Lens] applied ${activeLens.name}`);
+                    } catch (lensError) {
+                        console.error('Error applying lens:', lensError);
+                    }
+                }
+            }
         }
+    }, [currentTime, filterTimeline, availableFilters]);
 
-        const session = await cameraKit.createSession({
-          liveRenderTarget: canvasElement,
-        });
+    const handlePlayPause = () => {
+        const videoElement = videoRef.current;
 
-        session.setSource(videoElement);
-        cameraKitSessionRef.current = session;
-        setCameraKitSession(session);
-
-        const { lenses, errors} = await cameraKit.lensRepository.loadLensGroups([LENS_GROUP_ID]);
-        console.warn('Loading lenses errors: ', errors);
-        
-        const lensesWithColor: Filter[] = lenses.map((lens: Lens) => ({
-          ...lens,
-          color: pascalDarkColors[
-            Math.floor(Math.random() * pascalDarkColors.length)
-          ],
-        }));
-        setAvailableFilters(lensesWithColor);
-
-        try {
-          await session.play();
-          console.log('Camera Kit session started successfully');
-          
-          // Force a render to ensure canvas is displaying
-          await new Promise(resolve => setTimeout(resolve, 100));
-        } catch (playError) {
-          console.error('Error starting Camera Kit session:', playError);
+        if (videoElement) {
+            if (isPlaying) {
+                videoElement.pause();
+            } else {
+                videoElement.play().catch(err => {
+                    console.error('Video play failed:', err);
+                });
+            }
+            setIsPlaying(!isPlaying);
         }
-
-      } catch (error) {
-        console.error("Error initializing Camera Kit:", error);
-        setCameraKitSession(null);
-        setAvailableFilters([]);
-      }
     };
 
-    const timeoutId = setTimeout(initializeCameraKit, 100);
-
-    return () => {
-      clearTimeout(timeoutId);
-      if (cameraKitSessionRef.current) {
-        cameraKitSessionRef.current.destroy();
-        cameraKitSessionRef.current = null;
-      }
-      setCameraKitSession(null);
-      setAvailableFilters([]);
-    };
-  }, [videoURL, setCameraKitSession, setAvailableFilters]);
-
-  // Apply Filters Based on Timeline and Current Time
-  useEffect(() => {
-    const session = cameraKitSessionRef.current;
-
-    if (session && availableFilters.length > 0) {
-      const activeFilterEntry = filterTimeline.find(
-        (f) => currentTime >= f.startTime && currentTime <= f.endTime
-      );
-
-      session.removeLens();
-
-      if (activeFilterEntry) {
-        const activeLens = availableFilters.find(
-          (availableFilter: Filter) => availableFilter.id === activeFilterEntry.filterId
-        );
-        
-        if (activeLens) {
-          try {
-            session.applyLens(activeLens);
-          } catch (lensError) {
-            console.error('Error applying lens:', lensError);
-          }
+    const handleScrub = (newTime: number) => {
+        const videoElement = videoRef.current;
+        // Clamp the time to be within the video's duration
+        const time = Math.max(0, Math.min(newTime, videoDuration));
+        if (videoElement && isFinite(time)) {
+            videoElement.currentTime = time;
+            setCurrentTime(time);
         }
-      }
-    }
-  }, [currentTime, filterTimeline, availableFilters]);
+    };
 
-  const handlePlayPause = () => {
-    const videoElement = videoRef.current;
-    
-    if (videoElement) {
-      if (isPlaying) {
-        videoElement.pause();
-      } else {
-        videoElement.play().catch(err => {
-          console.error('Video play failed:', err);
-        });
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  const handleScrub = (newTime: number) => {
-    const videoElement = videoRef.current;
-    // Clamp the time to be within the video's duration
-    const time = Math.max(0, Math.min(newTime, videoDuration));
-    if (videoElement && isFinite(time)) {
-      videoElement.currentTime = time;
-      setCurrentTime(time);
-    }
-  };
-
-  return (
+    return (
     <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
       <h2 className="text-xl font-semibold text-purple-300 mb-6 text-center">Video Preview</h2>
       
@@ -226,6 +212,7 @@ const VideoPreviewPlayer: React.FC = () => {
         />
         <canvas
           ref={canvasRef}
+          key={`canvas-${videoURL}`}
           className="absolute inset-0 w-full h-full object-contain pointer-events-none"
           style={{ 
             display: videoURL ? 'block' : 'none',
