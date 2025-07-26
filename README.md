@@ -29,8 +29,8 @@ cp .env.example .env.local
 2. Fill in your Snap credentials in `.env.local`:
 
 ```env
-STAGING_API_TOKEN='your-api-token'
-LENS_GROUP_ID='your-lens-group-id'
+NEXT_PUBLIC_STAGING_API_TOKEN='your-api-token'
+NEXT_PUBLIC_LENS_GROUP_ID='your-lens-group-id'
 ```
 
 > `NEXT_PUBLIC_` prefix is required for any variable accessed in the browser (Next.js rule).
@@ -56,9 +56,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
     - Under Select App, select **Create App** for web.
     - Accept terms and create app 
 4. From Apps, select your app and go to **View in Developer Portal** (redirects you to https://kit.snapchat.com/manage/apps/<ID>)
-   - Under **API Tokens** select **Staging** Environment, and then generate a token. This is your STAGING_API_TOKEN.
+   - Under **API Tokens** select **Staging** Environment, and then generate a token. This is your NEXT_PUBLIC_STAGING_API_TOKEN.
 5. Under **Lens Scheduler**  (https://my-lenses.snapchat.com/<ID>/camera-kit/lens-scheduler/groups) go to lens groups
-    - Select a **Name/ID** and **Copy Lend Group Id**. This is your LENS_GROUP_ID.
+    - Select a **Name/ID** and **Copy Lend Group Id**. This is your NEXT_PUBLIC_LENS_GROUP_ID.
     - Note, if using Camera Kit Sample Lenses, the filters that tend to work the best are "Face Landmarks" for face and 
     "CamKit Hair" for the rest of the head
 6. Paste them into your `.env.local` file

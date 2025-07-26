@@ -10,8 +10,8 @@ import {
 } from '@snap/camera-kit';
 import { pascalDarkColors } from '@/theme';
 
-const STAGING_API_TOKEN = 'eyJhbGciOiJIUzI1NiIsImtpZCI6IkNhbnZhc1MyU0hNQUNQcm9kIiwidHlwIjoiSldUIn0.eyJhdWQiOiJjYW52YXMtY2FudmFzYXBpIiwiaXNzIjoiY2FudmFzLXMyc3Rva2VuIiwibmJmIjoxNzUzNTI3OTM0LCJzdWIiOiJkMjM3MmY5Mi1lZjlkLTRkNWMtYjU0My1lNDFhOGMwOWFlMjR-U1RBR0lOR34zMTFjZWUyYi05OTkzLTQ0YjYtOWQ4YS0yMDg5YjYzOTMwMWEifQ.K25a9J7rT8tbUQAHL45fvtf8aBLCb3CZPFymOxdrlYQ';
-const LENS_GROUP_ID = '868e355a-1370-4232-a645-603b66cc4869';
+const STAGING_API_TOKEN = process.env.NEXT_PUBLIC_STAGING_API_TOKEN!;
+const LENS_GROUP_ID     = process.env.NEXT_PUBLIC_LENS_GROUP_ID!;
 
 const VideoPreviewPlayer: React.FC = () => {
     const {
