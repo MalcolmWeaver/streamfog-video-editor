@@ -1,192 +1,128 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useVideoEditor } from '../context/VideoEditorContext';
-import { FilterTimelineEntry } from '../types';
+import { FilterTimelineEntry, ValidationError} from '../types';
+import { validateEntry } from "../validation";
+
+const errorMessages: Record<ValidationError, string> = {
+    START_NEGATIVE:         "Start time can’t be negative.",
+    END_EXCEEDS_DURATION:   "End time can’t exceed video length.",
+    START_NOT_LESS_THAN_END:"Start must be before end.",
+    OVERLAPPING:            "This time range overlaps another filter.",
+};
 
 const TimelineControls: React.FC = () => {
-  const { 
-      handleScrub,
-      handlePlayPause,
-      isPlaying,
-      availableFilters, 
-      filterTimeline, 
-      setFilterTimeline, 
-      videoDuration, 
-      currentTime 
-  } = useVideoEditor();
-  
-  //const [selectedFilterId, setSelectedFilterId] = useState<string>('');
-  //const [startTime, setStartTime] = useState<number>(0);
-  //const [endTime, setEndTime] = useState<number>(0);
+    const { 
+        availableFilters, 
+        filterTimeline, 
+        setFilterTimeline, 
+        videoDuration, 
+        currentTime 
+    } = useVideoEditor();
 
-  // -- Local UI State
-  const [isAddingFilter, setIsAddingFilter] = useState<boolean>(false);
-  const [showManageFilters, setShowManageFilters] = useState<boolean>(false);
-  const [editingFilterId, setEditingFilterId] = useState<number | null>(null);
+    // -- Local UI State
+    const [isAddingFilter, setIsAddingFilter] = useState<boolean>(false);
+    const [showManageFilters, setShowManageFilters] = useState<boolean>(false);
+    const [editingFilterId, setEditingFilterId] = useState<number | null>(null);
 
-  // -- State for "Add New Filter" form --
-  const [newFilterLabel, setNewFilterLabel] = useState<string>('New Filter');
-  const [newFilterStartTime, setNewFilterStartTime] = useState<number>(0);
-  const [newFilterEndTime, setNewFilterEndTime] = useState<number>(0);
-  const [selectedLensId, setSelectedLensId] = useState<string>('');
+    // -- State for "Add New Filter" form --
+    const [newFilterLabel, setNewFilterLabel] = useState<string>('New Filter');
+    const [newFilterStartTime, setNewFilterStartTime] = useState<number>(0) 
+    const [rawStart, setRawStart] = useState<string>("");
 
-  const [editState, setEditState] = useState<FilterTimelineEntry | null>(null);
 
-  // Syncing UI state with context
-  useEffect(() => {
-    // When a video loads, pre-select the first available filter
-    if (availableFilters.length > 0 && !selectedLensId) {
-      setSelectedLensId(availableFilters[0].id);
-    }
-  }, [availableFilters, selectedLensId]);
+    const [newFilterEndTime, setNewFilterEndTime] = useState<number>(0);
+    const [rawEnd, setRawEnd] = useState<string>("");
 
-  const formatTime = (seconds: number): string => {
-    if (isNaN(seconds) || seconds < 0) return '00:00';
-    return new Date(seconds * 1000).toISOString().substr(14, 5);
-  };
+    const [selectedLensId, setSelectedLensId] = useState<string>('');
 
-  // EVENT HANDLERS
-  const handleStartAddNewFilter = () => {
-    setIsAddingFilter(true);
-    const start = parseFloat(currentTime.toFixed(2));
-    const end = parseFloat(Math.min(currentTime + 5, videoDuration).toFixed(2));
-    setNewFilterStartTime(start);
-    setNewFilterEndTime(end);
-    setNewFilterLabel('New Filter');
-    if (!selectedLensId && availableFilters.length > 0) {
-      setSelectedLensId(availableFilters[0].id);
-    }
-  };
+    const [editState, setEditState] = useState<FilterTimelineEntry | null>(null);
+    // Errors
+    const [editErrors, setEditErrors]          = useState<ValidationError[]>([]);
+    const [newErrors, setNewErrors]                   = useState<ValidationError[]>([]);
 
-  const handleSaveNewFilter = () => {
-    if (!selectedLensId) {
-      alert('Please select a lens for the filter.');
-      return;
-    }
-    if (newFilterStartTime >= newFilterEndTime) {
-      alert('Start time must be before end time.');
-      return;
-    }
 
-    const newEntry: FilterTimelineEntry = {
-      id: Date.now(),
-      filterId: selectedLensId,
-      label: newFilterLabel || 'Untitled Filter',
-      startTime: newFilterStartTime,
-      endTime: newFilterEndTime,
+
+
+    // Syncing UI state with context
+    useEffect(() => {
+        // When a video loads, pre-select the first available filter
+        if (availableFilters.length > 0 && !selectedLensId) {
+            setSelectedLensId(availableFilters[0].id);
+        }
+    }, [availableFilters, selectedLensId]);
+
+    const formatTime = (seconds: number): string => {
+        if (isNaN(seconds) || seconds < 0) return '00:00';
+        return new Date(seconds * 1000).toISOString().substr(14, 5);
     };
 
-    setFilterTimeline((prev) => [...prev, newEntry]);
-    setIsAddingFilter(false);
-  };
+    // EVENT HANDLERS
 
-  const handleStartEditing = (filter: FilterTimelineEntry) => {
-    setEditingFilterId(filter.id);
-    setEditState({
-        label: filter.label,
-        startTime: filter.startTime,
-        endTime: filter.endTime
-    });
-  };
 
-  const handleSaveEdit = () => {
-    if (!editState || editingFilterId === null) return;
+    const handleStartAddNewFilter = () => {
+        setRawEnd('0.00');
+        setRawStart('0.00');
+        setIsAddingFilter(true);
+        const start = parseFloat(currentTime.toFixed(2));
+        const end = parseFloat(Math.min(currentTime + 5, videoDuration).toFixed(2));
+        setNewFilterStartTime(start);
+        setNewFilterEndTime(end);
+        setNewFilterLabel('New Filter');
+        if (!selectedLensId && availableFilters.length > 0) {
+            setSelectedLensId(availableFilters[0].id);
+        }
+    };
 
-    if (editState.startTime >= editState.endTime) {
-      alert('Start time must be before end time.');
-      return;
-    }
+    const handleSaveNewFilter = () => {
+        const candidate: FilterTimelineEntry = {
+            id: Date.now(),
+            filterId: selectedLensId,
+            label: "New Filter",
+            startTime: newFilterStartTime,
+            endTime: newFilterEndTime,
+        };
+        const errs = validateEntry(candidate, filterTimeline, videoDuration);
+        setNewErrors(errs);
+        if (errs.length) return;
 
-    setFilterTimeline((prev) =>
-      prev.map((f) =>
-        f.id === editingFilterId
-          ? {
-              ...f, // Preserves original filterId
-              label: editState.label,
-              startTime: editState.startTime,
-              endTime: editState.endTime,
+        setFilterTimeline((prev) => [...prev, candidate]);
+        setNewErrors([]); 
+        setIsAddingFilter(false);
+    };
+
+    const handleStartEditing = (filter: FilterTimelineEntry) => {
+        setEditingFilterId(filter.id);
+        setEditState(filter);
+        setRawStart(`${filter.startTime}`);
+        setRawEnd(`${filter.endTime}`);
+    };
+
+    const handleDeleteFilter = (id: number) => {
+        if (window.confirm('Are you sure you want to delete this filter?')) {
+            setFilterTimeline((prev) => prev.filter((f) => f.id !== id));
+            if (editingFilterId === id) {
+                setEditingFilterId(null);
             }
-          : f
-      )
-    );
-
-    setEditingFilterId(null);
-    setEditState(null);
-  };
-
-  const handleDeleteFilter = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this filter?')) {
-      setFilterTimeline((prev) => prev.filter((f) => f.id !== id));
-      if (editingFilterId === id) {
-        setEditingFilterId(null);
-      }
-    }
-  };
+        }
+    };
 
 
-  //useEffect(() => {
-  //  // Update end time when video duration changes
-  //  setEndTime(videoDuration);
-  //}, [videoDuration]);
-  //
-  //console.log('videoDuration changed: ', videoDuration);
+    const handleSaveEdit = () => {
+        if (!editState || editingFilterId === null) return;
+        const errs = validateEntry(editState, filterTimeline, videoDuration);
+        setEditErrors(errs);
+        if (errs.length) return;
 
-  //const handleAddFilter = () => {
-  //  console.log('ADDING FILTER: ', selectedFilterId, startTime, endTime);
-  //  if (selectedFilterId && startTime >= 0 && endTime <= videoDuration && startTime < endTime) {
-  //    const newFilterEntry: FilterTimelineEntry = {
-  //      id: Date.now(), // Unique ID for the entry
-  //      filterId: selectedFilterId,
-  //      startTime: parseFloat(startTime.toString()), // Ensure number type
-  //      endTime: parseFloat(endTime.toString()),     // Ensure number type
-  //    };
-  //    setFilterTimeline((prev) => [...prev, newFilterEntry]);
-  //    // Reset form
-  //    setSelectedFilterId('');
-  //    setStartTime(0);
-  //    setEndTime(videoDuration);
-  //  } else {
-  //    // TODO: replace with a custom modal notification
-  //    console.error('Please select a filter and ensure valid start/end times.');
-  //  }
-  //};
-  //
-  //const handleDeleteFilter = (id: number) => {
-  //  setFilterTimeline((prev) => prev.filter((f) => f.id !== id));
-  //};
+        setFilterTimeline((prev) =>
+                          prev.map((f) => (f.id === editingFilterId ? editState : f))
+                         );
+                         setEditErrors([]);
+                         setEditingFilterId(null);
+    };
 
-  return (
+    return (
     <div className="w-full mt-6 p-4 bg-gray-800 rounded-lg flex flex-col gap-4 shadow-xl">
-      {/* Play/Pause & Time Display */}
-      <div className="flex items-center justify-between text-gray-300">
-        <button
-          onClick={handlePlayPause}
-          className="p-2 rounded-full bg-purple-600 hover:bg-purple-700 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
-          aria-label={isPlaying ? 'Pause' : 'Play'}
-        >
-          {isPlaying ? (
-            <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-          ) : (
-            <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-          )}
-        </button>
-        <div className="text-lg font-mono tracking-wider">
-          <span>{formatTime(currentTime)}</span> / <span>{formatTime(videoDuration)}</span>
-        </div>
-      </div>
-
-      {/* Timeline Scrubber */}
-      <input
-        type="range"
-        min="0"
-        max={videoDuration}
-        value={currentTime}
-        onChange={(e) => handleScrub(parseFloat(e.target.value))}
-        className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer range-thumb"
-        aria-label="Video scrubber"
-        disabled={videoDuration === 0}
-      />
-
       {/* Filter Visualization Bar */}
       <div className="relative w-full h-8 bg-gray-700 rounded-md overflow-hidden my-2 border border-gray-900">
         {filterTimeline.map((filter) => {
@@ -272,32 +208,64 @@ const TimelineControls: React.FC = () => {
             <div className="flex flex-col gap-1">
               <label htmlFor="new-start-time" className="text-gray-300 text-sm">Start Time (s):</label>
               <div className="flex gap-2">
-                 <input
-                    type="number"
-                    id="new-start-time"
-                    value={newFilterStartTime}
-                    onChange={(e) => setNewFilterStartTime(parseFloat(e.target.value))}
-                    className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
-                    step="0.1" min="0" max={videoDuration}
+                <input
+                  type="number"
+                  value={rawStart}
+                  onChange={(e) => setRawStart(e.target.value)}
+                  onBlur={() => {
+                    let v = parseFloat(rawStart);
+                    if (isNaN(v)) v = 0;
+                    v = Math.max(0, Math.min(videoDuration, v));
+                    setNewFilterStartTime(v);
+                    setRawStart(v.toFixed(2)); // show the clamped number
+                  }}
+                  placeholder="0.00"
+                  className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
                 />
-                <button onClick={() => setNewFilterStartTime(currentTime)} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
+ 
+                <button 
+                    onClick={() => { 
+                        setRawStart(currentTime.toFixed(2)); 
+                        setNewFilterStartTime(currentTime);
+                    }}
+                    className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white"
+                >Set</button>
               </div>
             </div>
             <div className="flex flex-col gap-1">
               <label htmlFor="new-end-time" className="text-gray-300 text-sm">End Time (s):</label>
                <div className="flex gap-2">
                 <input
-                    type="number"
-                    id="new-end-time"
-                    value={newFilterEndTime}
-                    onChange={(e) => setNewFilterEndTime(parseFloat(e.target.value))}
-                    className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
-                    step="0.1" min="0" max={videoDuration}
+                  type="number"
+                  value={rawEnd}
+                  onChange={(e) => setRawEnd(e.target.value)}
+                  onBlur={() => {
+                    let v = parseFloat(rawEnd);
+                    if (isNaN(v)) v = 0;
+                    v = Math.max(0, Math.min(videoDuration, v));
+                    setNewFilterEndTime(v);
+                    setRawEnd(v.toFixed(2)); // show the clamped number
+                  }}
+                  placeholder="0.00"
+                  className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
                 />
-                <button onClick={() => setNewFilterEndTime(currentTime)} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
+                <button 
+                    onClick={() => {
+                        setRawEnd(currentTime.toFixed(2));
+                        setNewFilterEndTime(currentTime);
+                    }}
+                    className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white"
+                >Set</button>
               </div>
             </div>
           </div>
+          {newErrors.length > 0 && (
+            <ul className="text-red-400 list-disc list-inside">
+              {newErrors.map((code) => (
+                <li key={code}>{errorMessages[code]}</li>
+              ))}
+            </ul>
+          )}
           <div className="flex justify-end gap-3 mt-3">
             <button onClick={() => setIsAddingFilter(false)} className="py-2 px-4 bg-gray-600 hover:bg-gray-700 rounded-lg text-white font-semibold">Cancel</button>
             <button onClick={handleSaveNewFilter} className="py-2 px-4 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold">Save Filter</button>
@@ -326,22 +294,76 @@ const TimelineControls: React.FC = () => {
                             onChange={(e) => setEditState({...editState, label: e.target.value})}
                             className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white text-lg font-semibold"
                         />
+                        <select
+                          value={editState.filterId}
+                          onChange={(e) => {
+                            setEditState(prev => prev && { ...prev, filterId: e.target.value });
+                            // Also re-validate overlap etc:
+                            setEditErrors(validateEntry(
+                              { ...editState!, filterId: e.target.value },
+                              filterTimeline,
+                              videoDuration
+                            ));
+                          }}
+                          className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white"
+                        >
+                          {availableFilters.map(lens => (
+                            <option key={lens.id} value={lens.id}>
+                              {lens.name}
+                            </option>
+                          ))}
+                        </select>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                             <div className="flex flex-col gap-1">
                                 <label className="text-gray-400 text-xs">Start (s)</label>
                                 <div className="flex gap-2">
-                                    <input type="number" value={editState.startTime} onChange={(e) => setEditState({...editState, startTime: parseFloat(e.target.value)})} className="p-2 rounded-md bg-gray-700 text-white w-full" step="0.1"/>
+                                    <input
+                                      type="number"
+                                      value={rawStart}
+                                      onChange={(e) => setRawStart(e.target.value)}
+                                      onBlur={() => {
+                                        let v = parseFloat(rawStart);
+                                        if (isNaN(v)) v = 0;
+                                        v = Math.max(0, Math.min(videoDuration, v));
+                                        const existingState = editState;
+                                        setEditState({...existingState, startTime: v});
+                                        setRawStart(v.toFixed(2)); // show the clamped number
+                                      }}
+                                      className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
+                                    />
                                     <button onClick={() => setEditState({...editState, startTime: currentTime})} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
                                 </div>
                             </div>
                             <div className="flex flex-col gap-1">
                                 <label className="text-gray-400 text-xs">End (s)</label>
                                 <div className="flex gap-2">
-                                    <input type="number" value={editState.endTime} onChange={(e) => setEditState({...editState, endTime: parseFloat(e.target.value)})} className="p-2 rounded-md bg-gray-700 text-white w-full" step="0.1"/>
+                                    <input
+                                      type="number"
+                                      value={rawEnd}
+                                      onChange={(e) => setRawEnd(e.target.value)}
+                                      onBlur={() => {
+                                        let v = parseFloat(rawEnd);
+                                        if (isNaN(v)) v = 0;
+                                        v = Math.max(0, Math.min(videoDuration, v));
+                                        const existingState = editState;
+                                        setEditState({...existingState, startTime: v});
+                                        setRawEnd(v.toFixed(2)); // show the clamped number
+                                      }}
+                                      className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
+                                    />
+
                                     <button onClick={() => setEditState({...editState, endTime: currentTime})} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
                                 </div>
                             </div>
                         </div>
+                        {editErrors.length > 0 && (
+                            <ul className="text-red-400 list-disc list-inside">
+                              {editErrors.map((code) => (
+                                <li key={code}>{errorMessages[code]}</li>
+                              ))}
+                            </ul>
+                          )}
                         <div className="flex justify-end gap-2">
                             <button onClick={() => setEditingFilterId(null)} className="px-3 py-1 bg-gray-600 rounded-md text-sm">Cancel</button>
                             <button onClick={handleSaveEdit} className="px-3 py-1 bg-green-600 rounded-md text-sm">Save</button>

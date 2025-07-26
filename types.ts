@@ -1,8 +1,19 @@
 import type { CameraKitSession, Lens } from '@snap/camera-kit';
 
-export interface Filter extends Lens {}
+
+export type ValidationError = 
+  | "START_NEGATIVE"
+  | "END_EXCEEDS_DURATION"
+  | "START_NOT_LESS_THAN_END"
+  | "OVERLAPPING";
+
+
+export interface Filter extends Lens {
+    color: string;
+}
 
 export interface FilterTimelineEntry {
+  label?: string;
   id: number; // Unique ID for the entry in the timeline
   filterId: string;
   startTime: number;
@@ -29,6 +40,4 @@ export interface VideoEditorContextType {
   setCurrentTime: React.Dispatch<React.SetStateAction<number>>;
   isPlaying: boolean;
   setIsPlaying: React.Dispatch<React.SetStateAction<boolean>>;
-  handlePlayPause: () => void;
-  handleScrub: (newTime: number) => void;
 }
