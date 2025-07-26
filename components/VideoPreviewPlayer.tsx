@@ -30,8 +30,6 @@ const VideoPreviewPlayer: React.FC = () => {
         canvasRef
     } = useVideoEditor();
 
-    //const videoRef = useRef<HTMLVideoElement>(null);
-    //const canvasRef = useRef<HTMLCanvasElement>(null);
     const cameraKitSessionRef = useRef<CameraKitSession | null>(null);
 
     // Video Metadata Loading and Time Updates
@@ -42,18 +40,6 @@ const VideoPreviewPlayer: React.FC = () => {
         if (videoElement) {
             const handleLoadedMetadata = () => {
                 setVideoDuration(videoElement.duration);
-                const canvas = canvasRef.current;
-                canvas.addEventListener("webglcontextlost", (e) => {
-                    e.preventDefault();
-                    console.error("[WebGL] context lost!");
-                    // you may need to recreate your session here
-                });
-
-                canvas.addEventListener("webglcontextrestored", () => {
-                    console.info("[WebGL] context restored — re-init session");
-                    initializeCameraKit();  // or your wrapper
-                });
-
             };
 
             const handleTimeUpdate = () => {
@@ -119,7 +105,7 @@ const VideoPreviewPlayer: React.FC = () => {
 
         (async () => {
             const kit     = await bootstrapCameraKit({ apiToken: STAGING_API_TOKEN });
-            const newSess = await kit.createSession({ liveRenderTarget: canvasEl, useWorker: true });
+            const newSess = await kit.createSession({ liveRenderTarget: canvasEl });
             cameraKitSessionRef.current = newSess;
             setCameraKitSession(newSess);
             newSess.setSource(videoEl);

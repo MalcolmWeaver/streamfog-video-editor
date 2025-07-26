@@ -41,9 +41,6 @@ const TimelineControls: React.FC = () => {
     const [editErrors, setEditErrors]          = useState<ValidationError[]>([]);
     const [newErrors, setNewErrors]                   = useState<ValidationError[]>([]);
 
-
-
-
     // Syncing UI state with context
     useEffect(() => {
         // When a video loads, pre-select the first available filter
@@ -58,8 +55,6 @@ const TimelineControls: React.FC = () => {
     };
 
     // EVENT HANDLERS
-
-
     const handleStartAddNewFilter = () => {
         setShowManageFilters(false);
         setRawEnd('0.00');
