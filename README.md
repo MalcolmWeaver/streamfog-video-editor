@@ -1,30 +1,80 @@
-# streamfog-video-editor
+# 📹 Streamfog Video Editor
 
-## Getting Started
+## 🚀 Getting Started
 
-### Clone
+This app uses Snap Kit to apply AR filters to YouTube videos. For the demo, Snap credentials are hardcoded — this will be replaced with secure `.env` configuration in future updates.
 
-For this demo, snap credentials are hardcoded. This will be changed in the future.
+### 1. Clone the Repository
 
 ```bash
-# Clone repo
 git clone https://github.com/MalcolmWeaver/streamfog-video-editor
-
-# navigate to correct dir/branch
 cd streamfog-video-editor
 git checkout master
-
-# install node modules
-npm install
-
-# run dev server
-npm run dev
-
 ```
-Then, open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Example Usage
-https://github.com/user-attachments/assets/cc9b8f92-717a-4700-8f72-7677935ef0a4
+### 2. Install Dependencies
 
-### Result
-https://github.com/user-attachments/assets/66e19080-130f-470d-b803-8918795ac77f
+```bash
+npm install
+```
+
+### 3. Set Up Environment Variables
+
+1. Copy the example file:
+
+```bash
+cp .env.example .env.local
+```
+
+2. Fill in your Snap credentials in `.env.local`:
+
+```env
+STAGING_API_TOKEN='your-api-token'
+LENS_GROUP_ID='your-lens-group-id'
+```
+
+> `NEXT_PUBLIC_` prefix is required for any variable accessed in the browser (Next.js rule).
+
+### 4. Run the Development Server
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 🔑 Snap Kit Setup Instructions
+
+### 1. Create a Snap Kit App
+
+1. Go to the [Snap Kit Developer Portal](https://my-lenses.snapchat.com/)
+2. Log in with your Snapchat account
+3. Click on the **APP** tab
+    - Enable App
+    - Under Select App, select **Create App** for web.
+    - Accept terms and create app 
+4. From Apps, select your app and go to **View in Developer Portal** (redirects you to https://kit.snapchat.com/manage/apps/<ID>)
+   - Under **API Tokens** select **Staging** Environment, and then generate a token. This is your STAGING_API_TOKEN.
+5. Under **Lens Scheduler**  (https://my-lenses.snapchat.com/<ID>/camera-kit/lens-scheduler/groups) go to lens groups
+    - Select a **Name/ID** and **Copy Lend Group Id**. This is your LENS_GROUP_ID.
+    - Note, if using Camera Kit Sample Lenses, the filters that tend to work the best are "Face Landmarks" for face and 
+    "CamKit Hair" for the rest of the head
+6. Paste them into your `.env.local` file
+
+---
+
+## ▶️ Example Usage
+
+### 🎥 Live Demo Recording
+
+`LiveDemoScreenRecording5.mp4`
+
+### 📸 Output Result
+
+`captureForDemo5.mp4`
+
+---
+
+
