@@ -17,14 +17,11 @@ const VideoPreviewPlayer: React.FC = () => {
     const {
         videoURL,
         setVideoDuration,
-        setCameraKitSession,
         availableFilters,
         setAvailableFilters,
         filterTimeline,
         currentTime,
         setCurrentTime,
-        isPlaying,
-        setIsPlaying,
         videoDuration,
         videoRef,
         canvasRef
@@ -33,7 +30,9 @@ const VideoPreviewPlayer: React.FC = () => {
     //const videoRef = useRef<HTMLVideoElement>(null);
     //const canvasRef = useRef<HTMLCanvasElement>(null);
     const cameraKitSessionRef = useRef<CameraKitSession | null>(null);
-
+    
+    const [isPlaying, setIsPlaying] = useState<boolean>(false);
+    
     // Video Metadata Loading and Time Updates
     useEffect(() => {
         if (!canvasRef || !('current' in canvasRef) || !videoRef || !('current' in videoRef) || !videoRef.current || !canvasRef.current) return;
@@ -110,7 +109,6 @@ const VideoPreviewPlayer: React.FC = () => {
         // Slow‑path: full teardown & rebuild
         session?.destroy();
         cameraKitSessionRef.current = null;
-        setCameraKitSession(null);
         setAvailableFilters([]);
 
         // Size before hijack
@@ -121,7 +119,6 @@ const VideoPreviewPlayer: React.FC = () => {
             const kit     = await bootstrapCameraKit({ apiToken: STAGING_API_TOKEN });
             const newSess = await kit.createSession({ liveRenderTarget: canvasEl, useWorker: true });
             cameraKitSessionRef.current = newSess;
-            setCameraKitSession(newSess);
             newSess.setSource(videoEl);
 
             const { lenses } = await kit.lensRepository.loadLensGroups([LENS_GROUP_ID]);
