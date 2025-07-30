@@ -7,16 +7,13 @@ import type { CameraKitSession } from '@snap/camera-kit';
 const VideoEditorContext = createContext<VideoEditorContextType | undefined>(undefined);
 
 export const VideoEditorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [videoFile, setVideoFile] = useState<File | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoURL, setVideoURL] = useState<string>('');
   const [videoDuration, setVideoDuration] = useState<number>(0);
-  const [cameraKitSession, setCameraKitSession] = useState<CameraKitSession | null>(null);
   const [availableFilters, setAvailableFilters] = useState<Filter[]>([]);
   const [filterTimeline, setFilterTimeline] = useState<FilterTimelineEntry[]>([]);
   const [currentTime, setCurrentTime] = useState<number>(0);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
   
 
   useEffect(() => {
@@ -28,24 +25,18 @@ export const VideoEditorProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, [videoURL]);
 
   const value: VideoEditorContextType = {
-    videoFile,
-    setVideoFile,
     canvasRef,
     videoRef,
     videoURL,
     setVideoURL,
     videoDuration,
     setVideoDuration,
-    cameraKitSession,
-    setCameraKitSession,
     availableFilters,
     setAvailableFilters,
     filterTimeline,
     setFilterTimeline,
     currentTime,
     setCurrentTime,
-    isPlaying,
-    setIsPlaying,
   };
 
   return (

@@ -1,9 +1,10 @@
 'use client';
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useVideoEditor } from '../context/VideoEditorContext';
 
 const VideoUpload: React.FC = () => {
-  const { videoFile, setIsPlaying, setVideoFile, setVideoURL, setVideoDuration } = useVideoEditor();
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const { setIsPlaying, setVideoURL, setVideoDuration } = useVideoEditor();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {

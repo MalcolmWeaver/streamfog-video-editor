@@ -6,7 +6,7 @@ import ModalPortal from './ModalPortal';
 import { warn } from 'console';
 
 const VideoRecorder: React.FC = () => {
-    const { videoURL, canvasRef, videoRef } = useVideoEditor();
+    const { videoURL, canvasRef, videoRef, currentTime, setCurrentTime} = useVideoEditor();
     const [recording, setRecording] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const recorderRef    = useRef<MediaRecorder | null>(null);
@@ -20,7 +20,7 @@ const VideoRecorder: React.FC = () => {
         cancelledRef.current = true;
         recorderRef.current?.state !== 'inactive' && recorderRef.current?.stop();
         // unmute & pause video
-        if (!videoRef || !('current' in videoRef)) {return;}
+        if (!videoRef || !('current' in videoRef) || !videoRef.current) {return;}
         if (videoRef.current) {
             videoRef.current.muted = false;
             videoRef.current.pause();
@@ -29,6 +29,7 @@ const VideoRecorder: React.FC = () => {
         }
         setRecording(false);
         setShowModal(false);
+        videoRef.current.currentTime = currentTime;
     };
 
     const startRecording = () => {

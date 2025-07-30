@@ -41,6 +41,11 @@ const TimelineControls: React.FC = () => {
     const [editErrors, setEditErrors]          = useState<ValidationError[]>([]);
     const [newErrors, setNewErrors]                   = useState<ValidationError[]>([]);
 
+    useEffect(() => {
+        setRawStart(`${editState?.startTime}`);
+        setRawEnd(`${editState?.endTime}`)
+    }, [editState?.startTime, editState?.endTime]);
+
     // Syncing UI state with context
     useEffect(() => {
         // When a video loads, pre-select the first available filter
@@ -333,7 +338,10 @@ const TimelineControls: React.FC = () => {
                                       }}
                                       className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
                                     />
-                                    <button onClick={() => setEditState({...editState, startTime: currentTime})} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
+                                    <button onClick={() => {
+                                        const cTime = currentTime;
+                                        setEditState({...editState, startTime: cTime});
+                                    }} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
                                 </div>
                             </div>
                             <div className="flex flex-col gap-1">
@@ -354,7 +362,10 @@ const TimelineControls: React.FC = () => {
                                       className="p-2 rounded-md bg-gray-700 border border-gray-600 text-white w-full"
                                     />
 
-                                    <button onClick={() => setEditState({...editState, endTime: currentTime})} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
+                                    <button onClick={() => {
+                                        const cTime = currentTime;
+                                        setEditState({...editState, endTime: cTime});
+                                    }} className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded-md text-sm text-white">Set</button>
                                 </div>
                             </div>
                         </div>

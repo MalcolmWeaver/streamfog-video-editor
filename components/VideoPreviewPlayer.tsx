@@ -17,21 +17,21 @@ const VideoPreviewPlayer: React.FC = () => {
     const {
         videoURL,
         setVideoDuration,
-        setCameraKitSession,
         availableFilters,
         setAvailableFilters,
         filterTimeline,
         currentTime,
         setCurrentTime,
-        isPlaying,
-        setIsPlaying,
         videoDuration,
         videoRef,
         canvasRef
     } = useVideoEditor();
 
     const cameraKitSessionRef = useRef<CameraKitSession | null>(null);
-
+    
+    const [isPlaying, setIsPlaying] = useState<boolean>(false);
+    const [isVideoMetadataReady, setIsVideoMetadataReady] = useState(false);
+    
     // Video Metadata Loading and Time Updates
     useEffect(() => {
         if (!canvasRef || !('current' in canvasRef) || !videoRef || !('current' in videoRef) || !videoRef.current || !canvasRef.current) return;
@@ -40,6 +40,7 @@ const VideoPreviewPlayer: React.FC = () => {
         if (videoElement) {
             const handleLoadedMetadata = () => {
                 setVideoDuration(videoElement.duration);
+                setIsVideoMetadataReady(true);
             };
 
             const handleTimeUpdate = () => {
@@ -54,25 +55,6 @@ const VideoPreviewPlayer: React.FC = () => {
                 videoElement.removeEventListener('timeupdate', handleTimeUpdate);
             };
         }
-    }, [videoURL]);
-
-    // state to hold when metadata is ready:
-    const [metaReady, setMetaReady] = useState(false);
-
-    useEffect(() => {
-        if (!canvasRef || !('current' in canvasRef) || !videoRef || !('current' in videoRef) || !videoRef.current || !canvasRef.current) return;
-        const videoEl = videoRef.current;
-        if (!videoURL || !videoEl) return;
-
-        // if already loaded, fire immediately
-        if (videoEl.readyState >= 2) {
-            setMetaReady(true);
-            return;
-        }
-        // otherwise wait
-        const onMeta = () => setMetaReady(true);
-        videoEl.addEventListener("loadedmetadata", onMeta);
-        return () => videoEl.removeEventListener("loadedmetadata", onMeta);
     }, [videoURL]);
 
     // Camera Kit initialization and cleanup
@@ -96,10 +78,8 @@ const VideoPreviewPlayer: React.FC = () => {
         // Slow‑path: full teardown & rebuild
         session?.destroy();
         cameraKitSessionRef.current = null;
-        setCameraKitSession(null);
         setAvailableFilters([]);
 
-        // Size before hijack
         canvasEl.width  = videoEl.videoWidth;
         canvasEl.height = videoEl.videoHeight;
 
@@ -107,7 +87,6 @@ const VideoPreviewPlayer: React.FC = () => {
             const kit     = await bootstrapCameraKit({ apiToken: STAGING_API_TOKEN });
             const newSess = await kit.createSession({ liveRenderTarget: canvasEl });
             cameraKitSessionRef.current = newSess;
-            setCameraKitSession(newSess);
             newSess.setSource(videoEl);
 
             const { lenses } = await kit.lensRepository.loadLensGroups([LENS_GROUP_ID]);
@@ -123,7 +102,7 @@ const VideoPreviewPlayer: React.FC = () => {
             await newSess.play();
         })().catch(console.error);
 
-    }, [videoURL, metaReady]);
+    }, [videoURL, isVideoMetadataReady]);
 
 
     // Apply Filters Based on Timeline and Current Time
