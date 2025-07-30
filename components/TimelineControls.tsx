@@ -41,9 +41,6 @@ const TimelineControls: React.FC = () => {
     const [editErrors, setEditErrors]          = useState<ValidationError[]>([]);
     const [newErrors, setNewErrors]                   = useState<ValidationError[]>([]);
 
-
-
-
     useEffect(() => {
         setRawStart(`${editState?.startTime}`);
         setRawEnd(`${editState?.endTime}`)
@@ -63,8 +60,6 @@ const TimelineControls: React.FC = () => {
     };
 
     // EVENT HANDLERS
-
-
     const handleStartAddNewFilter = () => {
         setShowManageFilters(false);
         setRawEnd('0.00');

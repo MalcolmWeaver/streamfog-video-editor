@@ -85,7 +85,7 @@ const VideoPreviewPlayer: React.FC = () => {
 
         (async () => {
             const kit     = await bootstrapCameraKit({ apiToken: STAGING_API_TOKEN });
-            const newSess = await kit.createSession({ liveRenderTarget: canvasEl});
+            const newSess = await kit.createSession({ liveRenderTarget: canvasEl });
             cameraKitSessionRef.current = newSess;
             newSess.setSource(videoEl);
 
